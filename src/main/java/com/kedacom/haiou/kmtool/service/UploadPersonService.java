@@ -54,12 +54,10 @@ public class UploadPersonService {
         }
 
         List<PersonBaseInfo> personBaseInfoList = new ArrayList<>();
-        File[] pictures = picLocation.listFiles();
-        log.info("本次共需上传图片 {} 张", pictures.length);
-        for (File picture : pictures) {
-            if (picture.isDirectory()) {
-                picture = getPicture(picture);
-            }
+        List<File> pictureList = new ArrayList<>();
+        getPictures(picLocation, pictureList);
+        log.info("本次共需上传图片 {} 张", pictureList.size());
+        for (File picture : pictureList) {
             if (null != picture && picture.isFile()) {
                 log.info("开始上传文件：{}", picture.getAbsolutePath());
                 if (!picture.isFile() || !PictureUtil.isPicture(picture)) {
@@ -68,7 +66,7 @@ public class UploadPersonService {
                 }
 
                 final String[] names = picture.getName().split("_");
-                if (names.length != 8) {
+                if (5 > names.length) {
                     log.info("{} 该文件命名格式不符合格式，跳过", picture.getAbsolutePath());
                     continue;
                 }
@@ -214,8 +212,8 @@ public class UploadPersonService {
         }
     }
 
-    public static void main(String[] args) {
-        List<File> pictureList = new ArrayList<>();
+     /*public static void main(String[] args) {
+       List<File> pictureList = new ArrayList<>();
         File baseDir = new File("E:\\soft\\image\\new");
         UploadPersonService uploadPersonService = new UploadPersonService();
         uploadPersonService.getPictures(baseDir, pictureList);
@@ -226,6 +224,9 @@ public class UploadPersonService {
             System.out.println(File.getPath());
         });
 
-    }
+        String name = "1___110102194909221131_李永中";
+        System.out.println(name.split("_").length);
+
+    }*/
 
 }
