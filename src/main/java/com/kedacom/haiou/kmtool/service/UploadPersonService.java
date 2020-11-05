@@ -38,6 +38,12 @@ public class UploadPersonService {
     @Value("${viewlib.batchNum}")
     private String batchNum;
 
+    @Value("${pictureName.format}")
+    private String pictureNameFormat;
+
+    @Value("${pictureName.split}")
+    private String pictureNameSplit;
+
     @Autowired
     private ViewlibFacade viewlibFacade;
 
@@ -53,6 +59,21 @@ public class UploadPersonService {
             return "输入的人员库ID不存在";
         }
 
+        final String[] nameFormat = pictureNameFormat.split(pictureNameSplit);
+        int nameIndex = -1;
+        int idNumberIndex = -1;
+        for (int i = 0; i < nameFormat.length; i++) {
+            if ("NAME".equals(nameFormat[i])){
+                nameIndex = i;
+            }
+            if ("ID".equals(nameFormat[i])){
+                idNumberIndex = i;
+            }
+        }
+        if (-1 == nameIndex || -1 == idNumberIndex){
+            return "配置文件的图片格式不正确";
+        }
+
         List<PersonBaseInfo> personBaseInfoList = new ArrayList<>();
         List<File> pictureList = new ArrayList<>();
         getPictures(picLocation, pictureList);
@@ -65,14 +86,16 @@ public class UploadPersonService {
                     continue;
                 }
 
-                final String[] names = picture.getName().split("_");
-                if (5 > names.length) {
+                final String[] names = picture.getName().split(pictureNameSplit);
+
+                if (nameFormat.length != names.length) {
                     log.info("{} 该文件命名格式不符合格式，跳过", picture.getAbsolutePath());
                     continue;
                 }
 
-                final String idNumber = names[3].trim();
-                final String name = names[4].replace(".jpg", "").replace("JPG", "").replace(".png", "").trim();
+                final String idNumber = names[idNumberIndex].trim();
+                final String name = names[nameIndex].replace(".jpg", "").replace("JPG", "").replace(".png", "")
+                        .replace("jpeg", "").trim();
                 PersonBaseInfo personBaseInfo = new PersonBaseInfo();
                 if (isNeedCheckIDNumber) {
                     //校验身份证
@@ -212,21 +235,12 @@ public class UploadPersonService {
         }
     }
 
-     /*public static void main(String[] args) {
-       List<File> pictureList = new ArrayList<>();
-        File baseDir = new File("E:\\soft\\image\\new");
-        UploadPersonService uploadPersonService = new UploadPersonService();
-        uploadPersonService.getPictures(baseDir, pictureList);
+    public static void main(String[] args) {
+        String regex = "(86)\\.(86)\\.(59)\\.9[1-9]";
+        String str = "86.86.59.90";
+        System.out.println(str.matches(regex));
 
-        System.out.println("size:" + pictureList.size());
-
-        pictureList.forEach(File -> {
-            System.out.println(File.getPath());
-        });
-
-        String name = "1___110102194909221131_李永中";
-        System.out.println(name.split("_").length);
-
-    }*/
-
+    }
 }
+
+

@@ -26,6 +26,9 @@ public class ViewlibFacade {
     @Value("${viewlib.addr}")
     private String viewlibAddr;
 
+    @Value("${flag.uploadMsg}")
+    private boolean isUploadMsg;
+
     public List<DataClassTab> getDataClassTab(String tabID) {
         String url = viewlibAddr + VIID_DATACLASSTABS + "?DataClassTab.TabID=" + tabID;
         log.info("查询视图库DataClassTab请求参数：{}", url);
@@ -78,16 +81,17 @@ public class ViewlibFacade {
         try {
             String params = GsonUtil.GsonString(personListRoot);
             log.info("即将录入视图库Person的参数 {}", params);
-            ResponseEntity<String> responseEntity = RestUtil.getRestTemplate().exchange(url, HttpMethod.POST, generateHttpEntity(params), String.class);
-            ResponseStatusListRoot responseStatusListRoot = GsonUtil.GsonToBean(responseEntity.getBody(), ResponseStatusListRoot.class);
-            if (new Integer(0).equals(responseStatusListRoot.getResponseStatusListObject().getResponseStatusObject().get(0).getStatusCode())) {
-                return true;
+            if (isUploadMsg) {
+                ResponseEntity<String> responseEntity = RestUtil.getRestTemplate().exchange(url, HttpMethod.POST, generateHttpEntity(params), String.class);
+                ResponseStatusListRoot responseStatusListRoot = GsonUtil.GsonToBean(responseEntity.getBody(), ResponseStatusListRoot.class);
+                if (new Integer(0).equals(responseStatusListRoot.getResponseStatusListObject().getResponseStatusObject().get(0).getStatusCode())) {
+                    return true;
+                } else {
+                    return false;
+                }
             } else {
-                return false;
+                return true;
             }
-
-            //return true;
-
         } catch (Exception e) {
             log.error("录入视图库Face异常 {}", ExceptionUtils.getStackTrace(e));
             return false;
@@ -101,15 +105,19 @@ public class ViewlibFacade {
         try {
             String params = GsonUtil.GsonString(faceListRoot);
             log.info("即将录入视图库Face的参数 {}", params);
-            ResponseEntity<String> responseEntity = RestUtil.getRestTemplate().exchange(url, HttpMethod.POST, generateHttpEntity(params), String.class);
-            ResponseStatusListRoot responseStatusListRoot = GsonUtil.GsonToBean(responseEntity.getBody(), ResponseStatusListRoot.class);
-            if (new Integer(0).equals(responseStatusListRoot.getResponseStatusListObject().getResponseStatusObject().get(0).getStatusCode())) {
-                return true;
+            if (isUploadMsg) {
+                ResponseEntity<String> responseEntity = RestUtil.getRestTemplate().exchange(url, HttpMethod.POST, generateHttpEntity(params), String.class);
+                ResponseStatusListRoot responseStatusListRoot = GsonUtil.GsonToBean(responseEntity.getBody(), ResponseStatusListRoot.class);
+                if (new Integer(0).equals(responseStatusListRoot.getResponseStatusListObject().getResponseStatusObject().get(0).getStatusCode())) {
+                    return true;
+                } else {
+                    return false;
+                }
             } else {
-                return false;
+                return true;
             }
 
-            //return true;
+
         } catch (Exception e) {
             log.error("录入视图库Face异常 {}", ExceptionUtils.getStackTrace(e));
             return false;
