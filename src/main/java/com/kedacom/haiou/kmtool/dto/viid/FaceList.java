@@ -4,6 +4,8 @@ import java.util.List;
 
 public class FaceList {
 
+    private String scollID;
+
     private int RecordStartNo;
 
     private int PageRecordNum;
@@ -42,5 +44,13 @@ public class FaceList {
 
     public void setFaceObject(List<Face> faceObject) {
         FaceObject = faceObject;
+    }
+
+    public String getScollID() {
+        return scollID;
+    }
+
+    public void setScollID(String scollID) {
+        this.scollID = scollID;
     }
 }

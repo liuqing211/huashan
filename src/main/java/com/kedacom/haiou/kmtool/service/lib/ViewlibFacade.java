@@ -10,6 +10,7 @@ import org.springframework.http.*;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 
 /**
@@ -123,6 +124,19 @@ public class ViewlibFacade {
             return false;
         }
 
+    }
+
+    public int getStaticFacesNum(String tabId) {
+        String url = viewlibAddr + VIID_FACE + "?Face.TabID=" + tabId + "&COUNT=1";
+        try {
+            ResponseEntity<String> responseEntity = RestUtil.getRestTemplate().exchange(url, HttpMethod.GET, null, String.class);
+            FacesNumRoot facesNumRoot = GsonUtil.GsonToBean(responseEntity.getBody(), FacesNumRoot.class);
+            int num = facesNumRoot.getFaceListObject().getTotalNum();
+            return num;
+        } catch (Exception e) {
+            log.error("根据库ID查询人脸数量失败！" + ",库id是：" + tabId);
+            return 0;
+        }
     }
 
     public HttpEntity<String> generateHttpEntity(String params) {
