@@ -1,12 +1,20 @@
 package com.kedacom.haiou.kmtool.service;
 
+import com.google.gson.Gson;
 import com.kedacom.haiou.kmtool.dto.PersonBaseInfo;
+import com.kedacom.haiou.kmtool.dto.UploadFileRespVO;
 import com.kedacom.haiou.kmtool.dto.viid.*;
 import com.kedacom.haiou.kmtool.service.lib.ViewlibFacade;
 import com.kedacom.haiou.kmtool.utils.ConvertUtil;
 import com.kedacom.haiou.kmtool.utils.IdFactory;
+import com.kedacom.haiou.kmtool.utils.ImageUtil;
 import com.kedacom.haiou.kmtool.utils.PictureUtil;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.http.entity.ContentType;
+import org.apache.http.entity.mime.content.ContentBody;
+import org.apache.http.entity.mime.content.FileBody;
+import org.apache.http.entity.mime.content.StringBody;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -25,6 +33,9 @@ public class UploadPersonService {
 
     @Value("${flag.uploadPicture}")
     private Boolean isUploadPicture;
+
+    @Value("${haioumate.addr}")
+    private String haioumateUrl;
 
     @Value("${prefix.pictureUrl}")
     private String urlPrefix;
@@ -49,6 +60,24 @@ public class UploadPersonService {
 
     public String uploadLocalPic(String tabID, String location) {
 
+        final String[] nameFormat = pictureNameFormat.split(pictureNameSplit);
+        log.info("根据配置解析后的图片名称数组为：{}",Arrays.toString(nameFormat));
+        int nameIndex = -1;
+        int idNumberIndex = -1;
+        for (int i = 0; i < nameFormat.length; i++) {
+            if ("NAME".equals(nameFormat[i])){
+                log.info("解析离线图片命名后获取姓名的下标为：{}", i);
+                nameIndex = i;
+            }
+            if ("ID".equals(nameFormat[i])){
+                log.info("解析离线图片命名后获取身份证号的下标为：{}", i);
+                idNumberIndex = i;
+            }
+        }
+        if (-1 == nameIndex || -1 == idNumberIndex){
+            return "配置文件的图片格式不正确";
+        }
+
         final File picLocation = new File(location);
         if (!picLocation.isDirectory() || !picLocation.exists()) {
             return "输入的本地图片路径不合法";
@@ -59,20 +88,7 @@ public class UploadPersonService {
             return "输入的人员库ID不存在";
         }
 
-        final String[] nameFormat = pictureNameFormat.split(pictureNameSplit);
-        int nameIndex = -1;
-        int idNumberIndex = -1;
-        for (int i = 0; i < nameFormat.length; i++) {
-            if ("NAME".equals(nameFormat[i])){
-                nameIndex = i;
-            }
-            if ("ID".equals(nameFormat[i])){
-                idNumberIndex = i;
-            }
-        }
-        if (-1 == nameIndex || -1 == idNumberIndex){
-            return "配置文件的图片格式不正确";
-        }
+
 
         List<PersonBaseInfo> personBaseInfoList = new ArrayList<>();
         List<File> pictureList = new ArrayList<>();
@@ -86,16 +102,16 @@ public class UploadPersonService {
                     continue;
                 }
 
-                final String[] names = picture.getName().split(pictureNameSplit);
+                final String[] names = picture.getName().replace(".jpg", "").replace("JPG", "").replace(".png", "")
+                        .replace("jpeg", "").trim().split(pictureNameSplit);
 
                 if (nameFormat.length != names.length) {
                     log.info("{} 该文件命名格式不符合格式，跳过", picture.getAbsolutePath());
                     continue;
                 }
 
-                final String idNumber = names[idNumberIndex].trim();
-                final String name = names[nameIndex].replace(".jpg", "").replace("JPG", "").replace(".png", "")
-                        .replace("jpeg", "").trim();
+                final String idNumber = names[idNumberIndex];
+                final String name = names[nameIndex].trim();
                 PersonBaseInfo personBaseInfo = new PersonBaseInfo();
                 if (isNeedCheckIDNumber) {
                     //校验身份证
@@ -108,20 +124,37 @@ public class UploadPersonService {
                 personBaseInfo.setImageID(IdFactory.ImageIDType());
                 personBaseInfo.setRelativeID(IdFactory.faceIdType());
 
+                String picUrl = null;
                 if (isUploadPicture) {
                     //上传图片
+                    picUrl = uploadPicture(picture);
+                    log.info("上传图片至haioumate获取到的图片路径: {}", picUrl);
                 } else {
-                    personBaseInfo.setPicUrl(picture.getPath().replace(picturePath.replace("/", "\\"), urlPrefix).replace("\\", "/"));
+                    // personBaseInfo.setPicUrl(picture.getPath().replace(picturePath.replace("/", "\\"), urlPrefix).replace("\\", "/"));
+                    String localPicPath = picture.getPath();
+                    log.info("获取到的图片路径为:" + localPicPath);
+                    if (localPicPath.contains(picturePath)){
+                        picUrl = localPicPath.replace(picturePath, haioumateUrl);
+                        log.info("转换图片路径获取到的代理地址: {}", picUrl);
+                    }
                 }
+
+                if (StringUtils.isEmpty(picUrl)){
+                    log.error("图片地址为空，获取图片地址出现异常");
+                    continue;
+                }
+                personBaseInfo.setPicUrl(picUrl);
+
                 personBaseInfoList.add(personBaseInfo);
 
                 if (personBaseInfoList.size() >= Integer.valueOf(batchNum)) {
                     boolean batchUploadResult = batchUploadPerson(personBaseInfoList, tabID);
-                    if (batchUploadResult) {
+                    /*if (batchUploadResult) {
                         personBaseInfoList.clear();
                     } else {
                         return "Failed";
-                    }
+                    }*/
+                    personBaseInfoList.clear();
                 }
             }
 
@@ -134,6 +167,25 @@ public class UploadPersonService {
             return "Failed";
         }
 
+    }
+
+    private String uploadPicture(File picture) {
+        if (null != picture) {
+            Map<String, ContentBody> reqParam = new HashMap<>();
+            reqParam.put("file", new FileBody(picture));
+            reqParam.put("filename", new StringBody(picture.getName(), ContentType.MULTIPART_FORM_DATA));
+            UploadFileRespVO uploadFileRespVO = new Gson().fromJson(ImageUtil.getImageUrl(haioumateUrl, reqParam), UploadFileRespVO.class);
+            if (uploadFileRespVO != null && uploadFileRespVO.getExt() != null) {
+                if (!StringUtils.isEmpty(uploadFileRespVO.getExt().getUrl())) {
+                    log.info("图片上传成功，图片URL {}", uploadFileRespVO.getExt().getUrl());
+                    return uploadFileRespVO.getExt().getUrl();
+                }
+            } else {
+                log.error("{} 上传图片失败，上传图片返回值 {}" + uploadFileRespVO.toString());
+            }
+        }
+
+        return null;
     }
 
     private File getPicture(File picture) {
@@ -236,9 +288,12 @@ public class UploadPersonService {
     }
 
     public static void main(String[] args) {
-        String regex = "(86)\\.(86)\\.(59)\\.9[1-9]";
-        String str = "86.86.59.90";
-        System.out.println(str.matches(regex));
+        String location = "D:/opt/avatar/image/";
+        String regex = "http://xxx:xx/image/";
+        String filePath = "D:/opt/avatar/image/xxx.jpg";
+
+        String fileUrl = filePath.replace(location,regex);
+        System.out.println(fileUrl);
 
     }
 }
