@@ -52,6 +52,10 @@ public class SyncFaceToAlgorithmController {
 
 
             boolean syncFaceToAlgorithmResult = syncFaceToAlgorithmService.syncFaceToAlgorithm(repoId, algorithmIds);
+
+            if (syncFaceToAlgorithmResult) {
+                log.info("人员库 {} 同步第三方算法完成", repoId);
+            }
         }
 
         return "success";

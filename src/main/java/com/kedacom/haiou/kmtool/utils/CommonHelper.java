@@ -18,11 +18,10 @@ import java.util.*;
 @Slf4j
 @Component
 public class CommonHelper {
-    @Value("${haioumateServer}")
+    @Value("${haioumate.addr}")
     private String haioumateServer;
     @Value("${haioumateFilePath:/mnt/upload}")
     private String haioumateFilePath;
-
 
 
     public static String ImageToBase64(String imgURL) {
@@ -43,7 +42,7 @@ public class CommonHelper {
 
             is.close();
         } catch (IOException e) {
-            e.printStackTrace();
+            log.error("图片 {} 转换Base64异常：{}", imgURL, ExceptionUtils.getStackTrace(e));
         }
         return new String(Base64.encodeBase64(data.toByteArray()));
     }
@@ -71,7 +70,7 @@ public class CommonHelper {
             out.write(b);
             out.flush();
             out.close();
-            return haioumateServer  + "/" + "api/download/" + dateStr + "/" + randomName + ".jpg";
+            return haioumateServer + "/" + "api/download/" + dateStr + "/" + randomName + ".jpg";
         } catch (Exception e) {
             return null;
         }
@@ -188,7 +187,6 @@ public class CommonHelper {
     }
 
 
-
     private static String toUpperFirstChar(String string) {
         char[] chars = string.toCharArray();
         if (chars[0] >= 'a' && chars[0] <= 'z') {
@@ -198,7 +196,7 @@ public class CommonHelper {
         return string;
     }
 
-    private static void parseParam(String paramString,  Map<String, String> paramMap) {
+    private static void parseParam(String paramString, Map<String, String> paramMap) {
         String[] splitParamString = paramString.split("=");
         if (splitParamString[0].contains(".")) {
             paramMap.put(splitParamString[0].split("\\.")[1], splitParamString[1]);

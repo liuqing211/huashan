@@ -10,10 +10,8 @@ import java.util.Map;
 @Data
 public class KafkaFaceMessage {
 
-    private String imageId;
+    private String imageID;
     private String imageContent;
     private String imageFormat;
     private String repoID;
-    @Expose(serialize = false, deserialize = false)
-    private Map<String, String> algorithmRepoMapping;
 }

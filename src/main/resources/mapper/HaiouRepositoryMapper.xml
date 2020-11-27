@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.kedacom.haiou.kmtool.dao.HaiouRepositoryDao" >
+    <resultMap id="BaseRepoResultMap" type="com.kedacom.haiou.kmtool.entity.HaiouRepository" >
+        <result column="id" property="id" jdbcType="VARCHAR" />
+        <result column="default_similarity" property="defaultSimilarity" jdbcType="FLOAT" />
+        <result column="description" property="description" jdbcType="VARCHAR" />
+        <result column="enable" property="enable" jdbcType="VARCHAR" />
+        <result column="create_time" property="createTime" jdbcType="VARCHAR" />
+        <result column="update_time" property="updateTime" jdbcType="VARCHAR" />
+        <result column="creator_name" property="creatorName" jdbcType="VARCHAR" />
+        <result column="creator_org" property="creatorOrg" jdbcType="VARCHAR" />
+        <result column="ext1" property="ext1" jdbcType="VARCHAR" />
+        <result column="belong_unit" property="belongUnit" jdbcType="VARCHAR" />
+        <result column="name" property="name" jdbcType="VARCHAR" />
+        <result column="type" property="type" jdbcType="VARCHAR" />
+        <result column="black_type" property="blackType" jdbcType="VARCHAR" />
+    </resultMap>
+
+    <resultMap id="BaseRepoMappingResultMap" type="com.kedacom.haiou.kmtool.entity.HaiouRepositoryMapping" >
+        <result column="algorithm_repository_id" property="algorithmRepositoryId" jdbcType="VARCHAR" />
+    </resultMap>
+
+    <sql id="Base_Repo_Column">
+        id, default_similarity, description, enable, create_time, update_time, creator_name, creator_org, ext1, belong_unit, name, type, black_type
+    </sql>
+
+    <select id="getAllBlackListRepo" resultType="com.kedacom.haiou.kmtool.entity.HaiouRepository">
+        select
+        <include refid="Base_Repo_Column"/>
+        FROM haiou.a_haiou_repository where black_type is not NULL and id != '0014' and creator_name='haiou'
+    </select>
+
+    <select id="queryRepoMappingByAlgIDAndRepoId" resultType="String" parameterType="String">
+        select algorithm_repository_id FROM haiou.a_haiou_repository_mapping where repository_id=#{repositoryId} and algorithm_id=#{algorithmId}
+    </select>
+
+
+
+</mapper>

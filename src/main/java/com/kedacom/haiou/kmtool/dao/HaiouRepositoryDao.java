@@ -12,5 +12,5 @@ public interface HaiouRepositoryDao {
 
     List<HaiouRepository> getAllBlackListRepo();
 
-    HaiouRepositoryMapping queryRepoMappingByAlgIDAndRepoId(@Param("algorithmId") String algId, @Param("repositoryId") String repoId);
+    String queryRepoMappingByAlgIDAndRepoId(@Param("algorithmId") String algId, @Param("repositoryId") String repoId);
 }

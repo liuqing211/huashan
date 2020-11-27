@@ -4,7 +4,7 @@ import java.util.List;
 
 public class FaceList {
 
-    private String scollID;
+    private String ScollID;
 
     private int RecordStartNo;
 
@@ -47,10 +47,10 @@ public class FaceList {
     }
 
     public String getScollID() {
-        return scollID;
+        return ScollID;
     }
 
     public void setScollID(String scollID) {
-        this.scollID = scollID;
+        this.ScollID = scollID;
     }
 }
