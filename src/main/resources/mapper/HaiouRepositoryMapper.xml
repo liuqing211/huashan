@@ -35,6 +35,12 @@
         select algorithm_repository_id FROM haiou.a_haiou_repository_mapping where repository_id=#{repositoryId} and algorithm_id=#{algorithmId}
     </select>
 
+    <select id="getRepoByCreatorId" resultType="com.kedacom.haiou.kmtool.entity.HaiouRepository">
+        select
+        <include refid="Base_Repo_Column"/>
+        FROM haiou.a_haiou_repository where creator_name=#{creatorName} and black_type is not NULL
+    </select>
+
 
 
 </mapper>

@@ -733,4 +733,91 @@ public class Face implements Serializable {
 	public void setDispTag(Integer dispTag) {
 		DispTag = dispTag;
 	}
+
+	@Override
+	public String toString() {
+		return "Face{" +
+				"FaceID='" + FaceID + '\'' +
+				", InfoKind=" + InfoKind +
+				", SourceID='" + SourceID + '\'' +
+				", DeviceID='" + DeviceID + '\'' +
+				", LeftTopX=" + LeftTopX +
+				", LeftTopY=" + LeftTopY +
+				", RightBtmX=" + RightBtmX +
+				", RightBtmY=" + RightBtmY +
+				", LocationMarkTime='" + LocationMarkTime + '\'' +
+				", FaceAppearTime='" + FaceAppearTime + '\'' +
+				", FaceDisAppearTime='" + FaceDisAppearTime + '\'' +
+				", IDType='" + IDType + '\'' +
+				", IDNumber='" + IDNumber + '\'' +
+				", Name='" + Name + '\'' +
+				", UsedName='" + UsedName + '\'' +
+				", Alias='" + Alias + '\'' +
+				", GenderCode='" + GenderCode + '\'' +
+				", AgeUpLimit=" + AgeUpLimit +
+				", AgeLowerLimit=" + AgeLowerLimit +
+				", EthicCode='" + EthicCode + '\'' +
+				", NationalityCode='" + NationalityCode + '\'' +
+				", NativeCityCode='" + NativeCityCode + '\'' +
+				", ResidenceAdminDivision='" + ResidenceAdminDivision + '\'' +
+				", ChineseAccentCode='" + ChineseAccentCode + '\'' +
+				", JobCategory='" + JobCategory + '\'' +
+				", AccompanyNumber=" + AccompanyNumber +
+				", SkinColor='" + SkinColor + '\'' +
+				", HairStyle='" + HairStyle + '\'' +
+				", HairColor='" + HairColor + '\'' +
+				", FaceStyle='" + FaceStyle + '\'' +
+				", FacialFeature='" + FacialFeature + '\'' +
+				", PhysicalFeature='" + PhysicalFeature + '\'' +
+				", RespiratorColor='" + RespiratorColor + '\'' +
+				", CapStyle='" + CapStyle + '\'' +
+				", CapColor='" + CapColor + '\'' +
+				", GlassStyle='" + GlassStyle + '\'' +
+				", GlassColor='" + GlassColor + '\'' +
+				", IsDriver=" + IsDriver +
+				", IsForeigner=" + IsForeigner +
+				", PassportType='" + PassportType + '\'' +
+				", ImmigrantTypeCode='" + ImmigrantTypeCode + '\'' +
+				", IsSuspectedTerrorist=" + IsSuspectedTerrorist +
+				", SuspectedTerroristNumber='" + SuspectedTerroristNumber + '\'' +
+				", IsCriminalInvolved=" + IsCriminalInvolved +
+				", CriminalInvolvedSpecilisationCode='" + CriminalInvolvedSpecilisationCode + '\'' +
+				", BodySpeciallMark='" + BodySpeciallMark + '\'' +
+				", CrimeMethod='" + CrimeMethod + '\'' +
+				", CrimeCharacterCode='" + CrimeCharacterCode + '\'' +
+				", EscapedCriminalNumber='" + EscapedCriminalNumber + '\'' +
+				", IsDetainees=" + IsDetainees +
+				", DetentionHouseCode='" + DetentionHouseCode + '\'' +
+				", DetaineesIdentity='" + DetaineesIdentity + '\'' +
+				", DetaineesSpecialIdentity='" + DetaineesSpecialIdentity + '\'' +
+				", MemberTypeCode='" + MemberTypeCode + '\'' +
+				", IsVictim=" + IsVictim +
+				", VictimType='" + VictimType + '\'' +
+				", InjuredDegree='" + InjuredDegree + '\'' +
+				", CorpseConditionCode='" + CorpseConditionCode + '\'' +
+				", IsSuspiciousPerson=" + IsSuspiciousPerson +
+				", Attitude=" + Attitude +
+				", Similaritydegree=" + Similaritydegree +
+				", EyebrowStyle='" + EyebrowStyle + '\'' +
+				", NoseStyle='" + NoseStyle + '\'' +
+				", MustacheStyle='" + MustacheStyle + '\'' +
+				", LipStyle='" + LipStyle + '\'' +
+				", WrinklePouch='" + WrinklePouch + '\'' +
+				", AcneStain='" + AcneStain + '\'' +
+				", FreckleBirthmark='" + FreckleBirthmark + '\'' +
+				", ScarDimple='" + ScarDimple + '\'' +
+				", OtherFeature='" + OtherFeature + '\'' +
+				", SubImageList=" + SubImageList +
+				", ShotTime='" + ShotTime + '\'' +
+				", TabID='" + TabID + '\'' +
+				", Maritalstatus=" + Maritalstatus +
+				", FamilyAddress='" + FamilyAddress + '\'' +
+				", SelfDefObject=" + SelfDefObject +
+				", RelativeTabId='" + RelativeTabId + '\'' +
+				", RelativeID='" + RelativeID + '\'' +
+				", CollectorOrg='" + CollectorOrg + '\'' +
+				", CollectorID='" + CollectorID + '\'' +
+				", DispTag=" + DispTag +
+				'}';
+	}
 }

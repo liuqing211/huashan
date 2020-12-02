@@ -13,4 +13,6 @@ public interface HaiouRepositoryDao {
     List<HaiouRepository> getAllBlackListRepo();
 
     String queryRepoMappingByAlgIDAndRepoId(@Param("algorithmId") String algId, @Param("repositoryId") String repoId);
+
+    List<HaiouRepository> getRepoByCreatorId(@Param("creatorName") String creatorName);
 }

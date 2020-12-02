@@ -134,8 +134,41 @@ public class ViewlibFacade {
             int num = facesNumRoot.getFaceListObject().getTotalNum();
             return num;
         } catch (Exception e) {
-            log.error("根据库ID查询人脸数量失败！" + ",库id是：" + tabId);
+            log.error("根据库ID: {}查询人脸数量失败: {}", tabId, ExceptionUtils.getStackTrace(e));
             return 0;
+        }
+    }
+
+    public int getStaticPersonsNum(String relativeId) {
+        String url = viewlibAddr + VIID_PERSON + "?Person.TabID like .*.* & Person.PersonID=" + relativeId + "&COUNT=1";
+        try {
+            ResponseEntity<String> responseEntity = RestUtil.getRestTemplate().exchange(url, HttpMethod.GET, null, String.class);
+            PersonsNumRoot personsNumRoot = GsonUtil.GsonToBean(responseEntity.getBody(), PersonsNumRoot.class);
+            int num = personsNumRoot.getPersonListObject().getTotalNum();
+            return num;
+        } catch (Exception e) {
+            log.error("根据RelativeId：{} 查询 staticperson 是否存在失败：{}", relativeId, ExceptionUtils.getStackTrace(e));
+            return 0;
+        }
+    }
+
+
+    public boolean delFace(String IDList, String tabId) {
+        String url = viewlibAddr + VIID_FACE + "?IDList=" + IDList + "&SOFT=TRUE&TabID=" + tabId;
+        log.info("收到软删除 staticface 数据的请求：{}", url);
+
+        try {
+            ResponseEntity<String> responseEntity = RestUtil.getRestTemplate().exchange(url, HttpMethod.DELETE, generateHttpEntity(""), String.class);
+            ResponseStatusListRoot responseStatusListRoot = GsonUtil.GsonToBean(responseEntity.getBody(), ResponseStatusListRoot.class);
+            if (new Integer(0).equals(responseStatusListRoot.getResponseStatusListObject().getResponseStatusObject().get(0).getStatusCode())) {
+                return true;
+            } else {
+                return false;
+            }
+
+        } catch (Exception e) {
+            log.error(ExceptionUtils.getStackTrace(e));
+            return false;
         }
     }
 

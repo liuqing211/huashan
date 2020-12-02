@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.kedacom.haiou.kmtool.dao.DeleteStaticfaceDao" >
+    <resultMap id="BaseResultMap" type="com.kedacom.haiou.kmtool.entity.DeleteStaticfaceLog" >
+        <result column="id" property="id" jdbcType="VARCHAR" />
+        <result column="face_id" property="faceId" jdbcType="VARCHAR" />
+        <result column="relative_id" property="relativeId" jdbcType="VARCHAR" />
+        <result column="tab_id" property="tabId" jdbcType="VARCHAR" />
+        <result column="idNumber" property="idNumber" jdbcType="VARCHAR" />
+        <result column="name" property="name" jdbcType="VARCHAR" />
+        <result column="storagepath" property="storagepath" jdbcType="VARCHAR" />
+        <result column="delete_flag" property="deleteFlag" jdbcType="VARCHAR" />
+        <result column="delete_time" property="deleteTime" jdbcType="VARCHAR" />
+    </resultMap>
+
+    <insert id="saveDeleteStaticfaceLog" parameterType="com.kedacom.haiou.kmtool.entity.DeleteStaticfaceLog">
+        insert into haiou.a_haiou_delete_staticface_log values(
+        #{id}, #{faceId}, #{relativeId}, #{tabId}, #{idNumber}, #{name}, #{storagepath}, #{deleteFlag}, #{deleteTime}
+        )
+    </insert>
+
+
+
+</mapper>

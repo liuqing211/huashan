@@ -1,9 +1,11 @@
 package com.kedacom.haiou.kmtool.entity;
 
 import lombok.Data;
+import lombok.ToString;
 
 
 @Data
+@ToString
 public class HaiouRepository {
 
     private String id;

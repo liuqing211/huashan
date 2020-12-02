@@ -29,7 +29,7 @@ public class TimeUtil {
     }
 
     public static String getNowDateStr(Integer type){
-        SimpleDateFormat simpleDateFormat = simpleDateFormatMap.get(1);
+        SimpleDateFormat simpleDateFormat = simpleDateFormatMap.get(type);
         return simpleDateFormat.format(new Date());
     };
 }
