@@ -2,6 +2,7 @@ package com.kedacom.haiou.kmtool.utils;
 
 import javafx.scene.image.Image;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 
 import javax.imageio.ImageIO;
@@ -69,6 +70,35 @@ public class PictureUtil {
         }
 
         return false;
+    }
+
+    public static String ImageToBase64(String imgURL) {
+        ByteArrayOutputStream data = new ByteArrayOutputStream();
+        try {
+            URL url = new URL(imgURL);
+            byte[] by = new byte[1024];
+
+            HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+            conn.setRequestMethod("GET");
+            conn.setConnectTimeout(5000);
+            InputStream is = conn.getInputStream();
+
+            int len = -1;
+            while ((len = is.read(by)) != -1) {
+                data.write(by, 0, len);
+            }
+
+            is.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return new String(Base64.encodeBase64(data.toByteArray()));
+    }
+
+
+    public static void main(String[] args) {
+        String imageBase64 = PictureUtil.ImageToBase64("http://86.81.131.100/haioumate/api/download/20201229/2204ff0e-cc05-4bff-8b4e-0d24b4a05248.jpg");
+        System.out.println("base64:{{" + imageBase64 + "}}");
     }
 
 }
