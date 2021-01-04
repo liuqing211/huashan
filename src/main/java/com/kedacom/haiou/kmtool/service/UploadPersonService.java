@@ -113,6 +113,13 @@ public class UploadPersonService {
                 final String idNumber = names[idNumberIndex];
                 final String name = names[nameIndex].trim();
                 PersonBaseInfo personBaseInfo = new PersonBaseInfo();
+
+                if (name.contains("（") || name.contains("）") || name.contains("(") || name.contains(")")) {
+                    log.info("{} 该文件命名带括号，需格式化", picture.getAbsolutePath());
+                } else {
+                    continue;
+                }
+
                 if (isNeedCheckIDNumber) {
                     //校验身份证
                 } else {
@@ -206,10 +213,10 @@ public class UploadPersonService {
     }
 
 
-    private boolean batchUploadPerson(List<PersonBaseInfo> personBaseInfoList, String tabID) {
+    public boolean batchUploadPerson(List<PersonBaseInfo> personBaseInfoList, String tabID) {
         List<String> idNumerList = personBaseInfoList.stream().map(PersonBaseInfo::getIdNumber).collect(Collectors.toList());
         String pageNum = "&PageRecordNum=" + idNumerList.size() * 10;
-        String person_params = "?Person.TabID=0&Person.IDNumber in (" + String.join(",", idNumerList) + ")" + pageNum;
+        String person_params = "?Person.TabID like .*.*&Person.IDNumber in (" + String.join(",", idNumerList) + ")" + pageNum;
         String face_params = "?Face.TabID=" + tabID + "&Face.IDNumber in (" + String.join(",", idNumerList) + ")" + pageNum;
 
         List<Person> existPersons = viewlibFacade.getPersons(person_params);
