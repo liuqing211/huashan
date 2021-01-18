@@ -97,7 +97,7 @@ public class PictureUtil {
 
 
     public static void main(String[] args) {
-        String imageBase64 = PictureUtil.ImageToBase64("http://86.81.131.100/haioumate/api/download/20201229/2204ff0e-cc05-4bff-8b4e-0d24b4a05248.jpg");
+        String imageBase64 = PictureUtil.ImageToBase64("http://86.81.131.45:8080/haioumate/api/download/phone/20210107/0a0ea0e2-c41d-471e-a5c7-b319878231a2.jpg");
         System.out.println("base64:{{" + imageBase64 + "}}");
     }
 

@@ -59,8 +59,35 @@ public class CleanDirtyDataController {
             log.error("清理脏数据异常：{}", ExceptionUtils.getStackTrace(e));
         }
         log.info("根据库创建人 {} 清理 staticface 中的脏数据完成", creatorId);
+        return "success";
+    }
 
+    @GetMapping ("/staticface/cleanAllTab")
+    @ResponseBody
+    public String cleanAllTab() {
+        List<String> whiteRepoIdList = Arrays.asList(whiteRepeIds.split(","));
+        log.info("配置文件中的白名单有 {}", String.join(",", whiteRepoIdList));
+        List<HaiouRepository> cleanRepositoryList = new ArrayList<>();
 
+        /*List<HaiouRepository> allRepositoryList = cleanDirtyDataService.getAllRepository();
+        haiouRepositoryList.forEach(haiouRepository -> {
+            final String tabId = haiouRepository.getId();
+            if (StringUtils.isNotBlank(tabId)) {
+                boolean isNotEmpty = cleanDirtyDataService.confirmStaticfaceNum(tabId);
+                if (!isNotEmpty || whiteRepoIdList.contains(tabId)) {
+                    log.info("人员库 {}-{} 中无数据或禁止进行修改删除，无需清理", haiouRepository.getId(), haiouRepository.getName());
+                } else {
+                    cleanRepositoryList.add(haiouRepository);
+                }
+            }
+        });
+
+        try {
+            cleanDirtyDataService.cleanStaticfaceByTab(cleanRepositoryList);
+        } catch (Exception e) {
+            log.error("清理脏数据异常：{}", ExceptionUtils.getStackTrace(e));
+        }
+        log.info("根据库创建人 {} 清理 staticface 中的脏数据完成", creatorId);*/
         return "success";
     }
 

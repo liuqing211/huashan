@@ -157,7 +157,7 @@ public class CleanDirtyDataService {
      * @param relativeID
      * @return
      */
-    private int getStaticpersonNumByRelativeID(String relativeID) {
+    private int getStaticpersonNumByRelativeID  (String relativeID) {
         int staticPersonsNum = 0;
         try {
             staticPersonsNum = viewlibFacade.getStaticPersonsNum(relativeID);
@@ -167,5 +167,14 @@ public class CleanDirtyDataService {
         }
 
         return staticPersonsNum;
+    }
+
+    /**
+     * 查询所有人员库
+     * @return
+     */
+    public List<HaiouRepository> getAllRepository() {
+
+        return null;
     }
 }
