@@ -17,6 +17,7 @@ import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.clients.producer.RecordMetadata;
 import org.apache.kafka.common.serialization.StringSerializer;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -44,7 +45,7 @@ public class SyncFaceToAlgorithmService {
     @Autowired
     private ViewlibFacade viewlibFacade;
 
-    @Autowired
+    @Qualifier("kafkaKedaTemplate")
     private KafkaTemplate<byte[], byte[]> kafkaTemplate;
 
     private static final String VIID_FACE = "/VIID/Faces";

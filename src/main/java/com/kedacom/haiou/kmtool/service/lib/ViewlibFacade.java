@@ -8,6 +8,7 @@ import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.*;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestClientException;
 
 import java.util.ArrayList;
 import java.util.Date;
@@ -23,12 +24,32 @@ public class ViewlibFacade {
     private static final String VIID_PERSON = "/VIID/Persons";
     private static final String VIID_FACE = "/VIID/Faces";
     private static final String VIID_DATACLASSTABS = "/VIID/DataClassTabs";
+    private static final String VIID_DISPOSITIONNOTIFICATIONS = "/VIID/DispositionNotifications";
 
     @Value("${viewlib.addr}")
     private String viewlibAddr;
 
     @Value("${flag.uploadMsg}")
     private boolean isUploadMsg;
+
+    public List<DispositionNotification> getDispositionNotifications(String param) {
+        String url = viewlibAddr + VIID_DISPOSITIONNOTIFICATIONS + param;
+        log.info("查询视图库 DispositionNotifications 请求: {}", url);
+
+        try {
+            ResponseEntity<String> responseEntity = RestUtil.getRestTemplate().exchange(url, HttpMethod.GET, null, String.class);
+            DispositionNotificationListRoot dispositionNotificationList = GsonUtil.GsonToBean(responseEntity.getBody(), DispositionNotificationListRoot.class);
+            if (null == dispositionNotificationList || dispositionNotificationList.getDispositionNotificationListObject() == null) {
+                return new ArrayList<>();
+            }
+
+            return dispositionNotificationList.getDispositionNotificationListObject().getDispositionNotificationObject();
+        } catch (Exception e) {
+            log.error("查询视图库 DispositionNotifications 异常: {}", ExceptionUtils.getStackTrace(e));
+        }
+
+        return new ArrayList<>();
+    }
 
     public List<DataClassTab> getDataClassTab(String tabID) {
         String url = viewlibAddr + VIID_DATACLASSTABS + "?DataClassTab.TabID=" + tabID;

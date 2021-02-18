@@ -79,16 +79,15 @@ public class CleanDirtyDataService {
     }
 
 
-    public void cleanStaticfaceByTab(List<HaiouRepository> haiouRepositoryList) throws Exception{
-        for (HaiouRepository haiouRepository : haiouRepositoryList) {
-            log.info("开始清理人员库 {}-{} 中的脏数据", haiouRepository.getName(), haiouRepository.getId());
-            final String tabId = haiouRepository.getId();
+    public void cleanStaticfaceByTabID(List<String> tabIdList) throws Exception{
+        for (String tabId : tabIdList) {
+            log.info("开始清理人员库 {} 中的脏数据", tabId);
             String scollID = "1";
 
             do {
                 String url = viewlibAddr + VIID_FACE + "?TabID=%s and ScollID=%s and MustUnLimit=1 and PageRecordNum = %s and Fields=(%s)";
                 url = String.format(url, tabId, scollID, 100, "FaceID, RelativeID, SubImageList.StoragePath, IDNumber, Name, TabID");
-                log.info("遍历视图库查询人员库 {}-{} 中 staticface 数据请求：{}", haiouRepository.getName(), haiouRepository.getId(), url);
+                log.info("遍历视图库查询人员库 {} 中 staticface 数据请求：{}", tabId, url);
 
                 ResponseEntity<String> pageResponse = null;
                 try {

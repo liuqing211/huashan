@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.kedacom.haiou.kmtool.dao.CalarmMsgInfoDao" >
+
+    <resultMap id="BaseMsgInfoResultMap" type="com.kedacom.haiou.kmtool.entity.CalarmMsgInfo" >
+        <result column="id" property="id" jdbcType="INTEGER" />
+        <result column="notification_id" property="notificationId" jdbcType="VARCHAR" />
+        <result column="disposition_id" property="dispositionId" jdbcType="VARCHAR" />
+        <result column="trigger_time" property="triggerTime" jdbcType="DATE" />
+        <result column="trigger_time_str" property="triggerTimeStr" jdbcType="VARCHAR" />
+    </resultMap>
+
+    <sql id="Base_MsgInfo_Column">
+        id,notification_id AS notificationId,disposition_id AS dispositionId,trigger_time AS triggerTime,trigger_time_str AS triggerTimeStr
+    </sql>
+
+    <select id="queryFeatureMsgInfo" resultType="com.kedacom.haiou.kmtool.entity.CalarmMsgInfo">
+        select
+        <include refid="Base_MsgInfo_Column"/>
+        FROM calarm.msg_info WHERE trigger_time >= '2023-01-01 00:00:00' and source='海鸥人像大数据应用系统';
+    </select>
+
+    <update id="updateTriggerTime" parameterType="java.lang.String">
+        UPDATE calarm.msg_info SET trigger_time = #{triggerTime}, trigger_time_str= #{triggerTimeStr}
+        WHERE disposition_id = #{dispositionId} AND notification_id = #{notificationId};
+    </update>
+
+</mapper>

@@ -41,6 +41,18 @@
         FROM haiou.a_haiou_repository where creator_name=#{creatorName} and black_type is not NULL
     </select>
 
+    <select id="queryRepoById" resultType="com.kedacom.haiou.kmtool.entity.HaiouRepository">
+        select
+        <include refid="Base_Repo_Column"/>
+        FROM haiou.a_haiou_repository where id=#{repositoryId}
+    </select>
+
+    <select id="getBlackRepoByCreatorName" resultType="com.kedacom.haiou.kmtool.entity.HaiouRepository">
+        select
+        <include refid="Base_Repo_Column"/>
+        FROM haiou.a_haiou_repository where creator_name=#{creatorName} and black_type = '20'
+    </select>
+
 
 
 </mapper>
