@@ -3,6 +3,8 @@ package com.kedacom.haiou.kmtool.dto;
 import lombok.Data;
 import lombok.ToString;
 
+import java.util.List;
+
 /**
  * Created by Administrator on 2020/10/22.
  */
@@ -15,4 +17,6 @@ public class PersonBaseInfo {
     private String idNumber;
     private String name;
     private String picUrl;
+    private List<String> tabIDList;
+
 }

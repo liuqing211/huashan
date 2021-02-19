@@ -8,6 +8,9 @@ import lombok.Data;
 @Data
 public class ExcelExistFaceEntity {
 
+    private Integer xh;
     private String idNumber;
+    private String name;
     private String tabName;
+
 }
