@@ -235,7 +235,7 @@ public class SyncFaceToAlgorithmService {
 
     }
 
-    private void addFacesToKafka(Face face, String algorithmId, String algRepoId) {
+    private void addFacesToKafka(Face face, String algorithmId, String algRepoId, BulkRequest bulkRequest) {
         String topic = addFaceTopic + "_" + algorithmId;
 
         KafkaFaceMessage kafkaFaceMessage = null;
@@ -261,12 +261,12 @@ public class SyncFaceToAlgorithmService {
             } catch (Exception e) {
                 log.error("人员信息 {} 发送kafka {} 失败：{}", kafkaFaceMessage.toString(), topic, ExceptionUtils.getStackTrace(e));
                 logParam.put("Status", "failed");
-                saveSendProfileInfoLog(logParam);
+                batchSaveSendProfileInfoLog(logParam, bulkRequest);
                 return;
             }
 
             logParam.put("Status", "success");
-            saveSendProfileInfoLog(logParam);
+            batchSaveSendProfileInfoLog(logParam, bulkRequest);
             log.info("人员信息 {} 发送kafka {} 成功，partition-{}, offset -{}", kafkaFaceMessage.getImageID(), topic, recordMetadata.partition(), recordMetadata.offset());
 
         }
@@ -624,6 +624,27 @@ public class SyncFaceToAlgorithmService {
 
     }
 
+    private void batchSaveSendProfileInfoLog(Map logParam, BulkRequest bulkRequest) {
+        SendProfileInfoLog sendProfileInfoLog = null;
+        try {
+            sendProfileInfoLog = ConvertUtil.convertFaceToSendProfileInfoLog(logParam);
+        } catch (Exception e) {
+            log.error("转换 SendProfileInfoLog 异常: {}", ExceptionUtils.getStackTrace(e));
+        }
+        if (null == sendProfileInfoLog) return;
+
+
+        final IndexRequest index = new IndexRequest(
+                "a_haiou_profile_send_log",
+                "a_haiou_profile_send_log",
+                sendProfileInfoLog.getId()
+        );
+        index.source(GsonUtil.GsonString(sendProfileInfoLog));
+        bulkRequest.add(index);
+
+
+    }
+
 
     public List<List<KafkaFaceMessage>> divideKafkaFaceMessages(List<KafkaFaceMessage> kafkaFaceMessageList, int batchSize) {
         List<List<KafkaFaceMessage>> params = new ArrayList<>();
@@ -660,6 +681,9 @@ public class SyncFaceToAlgorithmService {
     }
 
     public void MultiPushResidentToAlgorithm(String tabId, String algorithmIds) {
+
+        final BulkRequest bulkRequest = new BulkRequest();
+        bulkRequest.setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE);
 
         Map<String, String> algRepoMap= new HashMap<>();
         for (String algorithmId : algorithmIds.split(",")) {
@@ -699,7 +723,7 @@ public class SyncFaceToAlgorithmService {
                 ExecutorService executorService = Executors.newWorkStealingPool();
                 List<Future<Boolean>> result = new ArrayList();
                 for (Face face : faceList) {
-                    MultiAddFaceToKafkaThread thread = new MultiAddFaceToKafkaThread(face, algRepoMap);
+                    MultiAddFaceToKafkaThread thread = new MultiAddFaceToKafkaThread(face, algRepoMap, bulkRequest);
                     result.add(executorService.submit(thread));
                 }
 
@@ -713,6 +737,26 @@ public class SyncFaceToAlgorithmService {
                     }
                 });
                 executorService.shutdown();
+
+                if (bulkRequest.numberOfActions() > 0) {
+                    do {
+                        try {
+                            final BulkResponse bulkResponse = esClient.bulk(bulkRequest);
+                            if (bulkResponse.hasFailures()) {
+                                final BulkItemResponse[] items = bulkResponse.getItems();
+                                for (int i = 0; i < items.length; i++) {
+                                    if (items[i].isFailed()) {
+                                        log.error("保存档案发送日志失败{}", items[i].getFailureMessage());
+                                    }
+                                }
+                            }
+                            break;
+                        } catch (Exception e) {
+                            log.error("保存档案发送日志异常{}", ExceptionUtils.getStackTrace(e));
+                            commonService.waitAMoment();
+                        }
+                    } while (true);
+                }
 
                 String returnedScrollId = faceListRoot.getFaceListObject().getScollID();
                 if (!"1".equals(scollID) && !scollID.equals(returnedScrollId)) {
@@ -752,10 +796,12 @@ public class SyncFaceToAlgorithmService {
     public class MultiAddFaceToKafkaThread implements Callable<Boolean> {
         private Face face;
         private Map<String, String> algRepoMap;
+        private BulkRequest bulkRequest;
 
-        public MultiAddFaceToKafkaThread(Face face, Map<String, String> algRepoMap) {
+        public MultiAddFaceToKafkaThread(Face face, Map<String, String> algRepoMap, BulkRequest bulkRequest) {
             this.face = face;
             this.algRepoMap = algRepoMap;
+            this.bulkRequest = bulkRequest;
         }
 
         @Override
@@ -776,15 +822,14 @@ public class SyncFaceToAlgorithmService {
             if (StringUtils.isEmpty(face.getFaceID())) {
                 log.warn("查询出来的 Face 对象 FaceID 为空，FaceID: {}", face.getFaceID());
                 logParam.put("Reason", "查询出来的 Face 对象 FaceID 为空");
-                saveSendProfileInfoLog(logParam);
+                batchSaveSendProfileInfoLog(logParam, bulkRequest);
                 return false;
             }
 
             if (StringUtils.isEmpty(face.getRelativeID())) {
                 log.warn("查询出来的 Face 对象 RelativeID 为空，FaceID: {}", face.getFaceID());
                 logParam.put("Reason", "查询出来的 Face 对象 RelativeID 为空");
-                saveSendProfileInfoLog(logParam);
-                return false;
+                batchSaveSendProfileInfoLog(logParam, bulkRequest);                return false;
             }
 
             FaceCacheEntry faceCacheEntry = new FaceCacheEntry();
@@ -792,33 +837,32 @@ public class SyncFaceToAlgorithmService {
             try {
                 String faceCacheValue = redisTemplate.opsForValue().get("V:" + face.getFaceID());
                 faceCacheEntry = GsonUtil.GsonToBean(faceCacheValue, FaceCacheEntry.class);
-                log.info("JSONString: {}", faceCacheValue);
             } catch (Exception e) {
                 log.error("查询redis缓存异常: {}", ExceptionUtils.getStackTrace(e));
             }
             if (null == faceCacheEntry) {
                 log.warn("查询出来的 Face 对象 RelativeID 在 缓存 中不存在，FaceID: {}, RelativeID：{}", face.getFaceID(), face.getRelativeID());
                 logParam.put("Reason", "查询出来的 Face 对象 RelativeID 在 Person 中不存在");
-                saveSendProfileInfoLog(logParam);
+                batchSaveSendProfileInfoLog(logParam, bulkRequest);
                 return false;
             }
 
             if (StringUtils.isEmpty(face.getIDNumber())) {
                 log.warn("查询出来的 Face 对象 IDNumber 为空，FaceID: {}", face.getFaceID());
                 logParam.put("Reason", "查询出来的 Face 对象 IDNumber 为空");
-                saveSendProfileInfoLog(logParam);
+                batchSaveSendProfileInfoLog(logParam, bulkRequest);
                 return false;
             }
 
             if (StringUtils.isEmpty(face.getSubImageList().getSubImageInfoObject().get(0).getStoragePath())) {
                 log.warn("查询出来的 Face 对象 StoragePath 为空，FaceID: {}", face.getFaceID());
                 logParam.put("Reason", "查询出来的 Face 对象 StoragePath 为空");
-                saveSendProfileInfoLog(logParam);
+                batchSaveSendProfileInfoLog(logParam, bulkRequest);
                 return false;
             }
 
             for (Map.Entry<String, String> algRepoValue : algRepoMap.entrySet()) {
-                addFacesToKafka(face, algRepoValue.getKey(), algRepoValue.getValue());
+                addFacesToKafka(face, algRepoValue.getKey(), algRepoValue.getValue(), bulkRequest);
             }
 
             return true;
