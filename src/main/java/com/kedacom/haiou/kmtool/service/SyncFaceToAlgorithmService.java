@@ -1,6 +1,6 @@
 package com.kedacom.haiou.kmtool.service;
 
-import cn.hutool.core.date.DateTime;
+import cn.hutool.core.collection.CollectionUtil;
 import cn.hutool.core.date.DateUtil;
 import com.kedacom.haiou.kmtool.dao.HaiouRepositoryDao;
 import com.kedacom.haiou.kmtool.dto.KafkaFaceMessage;
@@ -15,7 +15,6 @@ import com.kedacom.haiou.kmtool.utils.*;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
-import org.apache.commons.lang3.time.DateUtils;
 import org.apache.http.HttpHost;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.ProducerRecord;
@@ -29,7 +28,6 @@ import org.elasticsearch.action.support.WriteRequest;
 import org.elasticsearch.client.RestClient;
 import org.elasticsearch.client.RestHighLevelClient;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.data.redis.core.RedisTemplate;
@@ -42,7 +40,6 @@ import org.springframework.util.CollectionUtils;
 import org.springframework.web.client.RestClientException;
 
 import javax.annotation.Resource;
-import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
@@ -91,6 +88,9 @@ public class SyncFaceToAlgorithmService {
 
     @Autowired
     RedisTemplate<String, String> redisTemplate;
+
+    @Autowired
+    HaiouRepositoryDao haiouRepositoryDao;
 
     @Bean
     RestHighLevelClient esClient() {
@@ -231,6 +231,44 @@ public class SyncFaceToAlgorithmService {
                 log.info("人员信息 {} 发送kafka {} 成功，partition-{}, offset -{}", kafkaFaceMessage.getImageID(), topic, recordMetadata.partition(), recordMetadata.offset());
 
             }
+        }
+
+    }
+
+    private void addFacesToKafka(Face face, String algorithmId, String algRepoId) {
+        String topic = addFaceTopic + "_" + algorithmId;
+
+        KafkaFaceMessage kafkaFaceMessage = null;
+        try {
+            kafkaFaceMessage = ConvertUtil.convertFaceToKafkaMessage(face, algRepoId);
+        } catch (Exception e) {
+            log.info("转换 KafkaFaceMessage 对象异常: {}", ExceptionUtils.getStackTrace(e));
+        }
+
+        if (kafkaFaceMessage != null && StringUtils.isNotEmpty(algorithmId)) {
+
+            Map logParam = new HashMap();
+            logParam.put("FaceObject", face);
+            logParam.put("Id", (StringUtils.isEmpty(face.getFaceID()) ? String.valueOf(face.hashCode()) :
+                    face.getFaceID()) + DateUtil.format(new Date(), "yyyyMMddHHmmss"));
+            logParam.put("AlgorithmId", algorithmId);
+            logParam.put("SendTime", DateUtil.format(new Date(), "yyyy-MM-dd HH:mm:ss"));
+
+            RecordMetadata recordMetadata = null;
+            try {
+                SendResult<byte[], byte[]> sendResult = kafkaTemplate.send(topic, kafkaFaceMessage.getImageID().getBytes(), GsonUtil.GsonString(kafkaFaceMessage).getBytes()).get();
+                recordMetadata = sendResult.getRecordMetadata();
+            } catch (Exception e) {
+                log.error("人员信息 {} 发送kafka {} 失败：{}", kafkaFaceMessage.toString(), topic, ExceptionUtils.getStackTrace(e));
+                logParam.put("Status", "failed");
+                saveSendProfileInfoLog(logParam);
+                return;
+            }
+
+            logParam.put("Status", "success");
+            saveSendProfileInfoLog(logParam);
+            log.info("人员信息 {} 发送kafka {} 成功，partition-{}, offset -{}", kafkaFaceMessage.getImageID(), topic, recordMetadata.partition(), recordMetadata.offset());
+
         }
 
     }
@@ -621,6 +659,76 @@ public class SyncFaceToAlgorithmService {
         return params;
     }
 
+    public void MultiPushResidentToAlgorithm(String tabId, String algorithmIds) {
+
+        Map<String, String> algRepoMap= new HashMap<>();
+        for (String algorithmId : algorithmIds.split(",")) {
+            String algoRepo = haiouRepositoryDao.queryRepoMappingByAlgIDAndRepoId(algorithmId, tabId);
+            if (StringUtils.isNotEmpty(algoRepo)) {
+                algRepoMap.put(algorithmId, algoRepo);
+            }
+        }
+
+        if (CollectionUtil.isEmpty(algRepoMap)) {
+            log.info("人员库 {} 在三家算法中都无映射", tabId);
+        }
+
+        int loadedCount = 0;
+        String scollID = "1";
+        do {
+            String url = viewlibAddr + VIID_FACE + "?TabID=%s and ScollID=%s and MustUnLimit=1 and PageRecordNum = %s and Fields=(%s)";
+            url = String.format(url, tabId, scollID, 1000, "FaceID, IDNumber, Name, RelativeID, TabID, SubImageList.StoragePath");
+            log.info("遍历视图库查询人员库 {} 中 staticface 数据请求：{}", tabId, url);
+
+            ResponseEntity<String> pageResponse = null;
+
+            try {
+                pageResponse = RestUtil.getRestTemplate().getForEntity(url, String.class);
+            } catch (RestClientException e) {
+                log.error("查询视图库请求 {} 请求失败：{}", url, ExceptionUtils.getMessage(e));
+                break;
+            }
+
+            if (HttpStatus.NOT_FOUND.equals(pageResponse.getStatusCode())) {
+                log.info("查询视图库人员库 {} 中 staticface 数据结束", tabId);
+                break;
+            } else if (HttpStatus.OK.equals(pageResponse.getStatusCode())) {
+                FaceListRoot faceListRoot = GsonUtil.GsonToBean(pageResponse.getBody(), FaceListRoot.class);
+                List<Face> faceList = faceListRoot.getFaceListObject().getFaceObject();
+
+                ExecutorService executorService = Executors.newWorkStealingPool();
+                List<Future<Boolean>> result = new ArrayList();
+                for (Face face : faceList) {
+                    MultiAddFaceToKafkaThread thread = new MultiAddFaceToKafkaThread(face, algRepoMap);
+                    result.add(executorService.submit(thread));
+                }
+
+                result.forEach(r -> {
+                    try {
+                        if (r.get()) {
+                            log.info("线程完成工作");
+                        }
+                    } catch (Exception e) {
+                        log.error("发送人脸图到Kafka失败");
+                    }
+                });
+                executorService.shutdown();
+
+                String returnedScrollId = faceListRoot.getFaceListObject().getScollID();
+                if (!"1".equals(scollID) && !scollID.equals(returnedScrollId)) {
+                    log.info("游标从 {} 变为 {} ，又从头加载", scollID, returnedScrollId);
+                    loadedCount = 0;
+                }
+
+                loadedCount += faceListRoot.getFaceListObject().getFaceObject().size();
+                scollID = returnedScrollId;
+            }
+
+
+        } while (true);
+
+    }
+
 
     public class AddFaceToKafkaThread implements Callable<Boolean> {
         private List<Face> faceList;
@@ -636,6 +744,82 @@ public class SyncFaceToAlgorithmService {
             algorithmIdList.forEach(algorithmId -> {
                 addFacesToKafka(faceList, algorithmId);
             });
+
+            return true;
+        }
+    }
+
+    public class MultiAddFaceToKafkaThread implements Callable<Boolean> {
+        private Face face;
+        private Map<String, String> algRepoMap;
+
+        public MultiAddFaceToKafkaThread(Face face, Map<String, String> algRepoMap) {
+            this.face = face;
+            this.algRepoMap = algRepoMap;
+        }
+
+        @Override
+        public Boolean call() {
+            if (face == null) {
+                log.warn("查询出来的 Face 对象为空");
+                return false;
+            }
+
+            Map logParam = new HashMap();
+            logParam.put("FaceObject", face);
+            logParam.put("Id", (StringUtils.isEmpty(face.getFaceID()) ? String.valueOf(face.hashCode()) :
+                    face.getFaceID()) + DateUtil.format(new Date(), "yyyyMMddHHmmss"));
+            logParam.put("AlgorithmId", "");
+            logParam.put("Status", "skip");
+            logParam.put("SendTime", DateUtil.format(new Date(), "yyyy-MM-dd HH:mm:ss"));
+
+            if (StringUtils.isEmpty(face.getFaceID())) {
+                log.warn("查询出来的 Face 对象 FaceID 为空，FaceID: {}", face.getFaceID());
+                logParam.put("Reason", "查询出来的 Face 对象 FaceID 为空");
+                saveSendProfileInfoLog(logParam);
+                return false;
+            }
+
+            if (StringUtils.isEmpty(face.getRelativeID())) {
+                log.warn("查询出来的 Face 对象 RelativeID 为空，FaceID: {}", face.getFaceID());
+                logParam.put("Reason", "查询出来的 Face 对象 RelativeID 为空");
+                saveSendProfileInfoLog(logParam);
+                return false;
+            }
+
+            FaceCacheEntry faceCacheEntry = new FaceCacheEntry();
+
+            try {
+                String faceCacheValue = redisTemplate.opsForValue().get("V:" + face.getFaceID());
+                faceCacheEntry = GsonUtil.GsonToBean(faceCacheValue, FaceCacheEntry.class);
+                log.info("JSONString: {}", faceCacheValue);
+            } catch (Exception e) {
+                log.error("查询redis缓存异常: {}", ExceptionUtils.getStackTrace(e));
+            }
+            if (null == faceCacheEntry) {
+                log.warn("查询出来的 Face 对象 RelativeID 在 缓存 中不存在，FaceID: {}, RelativeID：{}", face.getFaceID(), face.getRelativeID());
+                logParam.put("Reason", "查询出来的 Face 对象 RelativeID 在 Person 中不存在");
+                saveSendProfileInfoLog(logParam);
+                return false;
+            }
+
+            if (StringUtils.isEmpty(face.getIDNumber())) {
+                log.warn("查询出来的 Face 对象 IDNumber 为空，FaceID: {}", face.getFaceID());
+                logParam.put("Reason", "查询出来的 Face 对象 IDNumber 为空");
+                saveSendProfileInfoLog(logParam);
+                return false;
+            }
+
+            if (StringUtils.isEmpty(face.getSubImageList().getSubImageInfoObject().get(0).getStoragePath())) {
+                log.warn("查询出来的 Face 对象 StoragePath 为空，FaceID: {}", face.getFaceID());
+                logParam.put("Reason", "查询出来的 Face 对象 StoragePath 为空");
+                saveSendProfileInfoLog(logParam);
+                return false;
+            }
+
+            for (Map.Entry<String, String> algRepoValue : algRepoMap.entrySet()) {
+                addFacesToKafka(face, algRepoValue.getKey(), algRepoValue.getValue());
+            }
 
             return true;
         }

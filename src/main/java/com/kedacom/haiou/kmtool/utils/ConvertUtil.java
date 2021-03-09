@@ -273,6 +273,20 @@ public class ConvertUtil {
         return kafkaFaceMessage;
     }
 
+    public static KafkaFaceMessage convertFaceToKafkaMessage(Face face, String algRepoId) throws Exception {
+
+
+        KafkaFaceMessage kafkaFaceMessage = new KafkaFaceMessage();
+        kafkaFaceMessage.setImageID(face.getFaceID());
+        kafkaFaceMessage.setImageContent(CommonHelper.ImageToBase64(face.getSubImageList().getSubImageInfoObject().get(0).getStoragePath()));
+        kafkaFaceMessage.setImageFormat("image/jpg");
+        kafkaFaceMessage.setIdNumber(face.getIDNumber());
+        kafkaFaceMessage.setName(face.getName());
+        kafkaFaceMessage.setRepoID(algRepoId);
+
+        return kafkaFaceMessage;
+    }
+
     public static List<KafkaFaceMessage> converFaceListTokafkaFaceMessageList(List<Face> sendFaceList) {
 
         List<KafkaFaceMessage> kafkaFaceMessageList = new ArrayList<>();
