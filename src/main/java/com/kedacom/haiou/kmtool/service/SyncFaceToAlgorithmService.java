@@ -719,12 +719,28 @@ public class SyncFaceToAlgorithmService {
             } else if (HttpStatus.OK.equals(pageResponse.getStatusCode())) {
                 FaceListRoot faceListRoot = GsonUtil.GsonToBean(pageResponse.getBody(), FaceListRoot.class);
                 List<Face> faceList = faceListRoot.getFaceListObject().getFaceObject();
+                List<String> faceIdList = faceList.stream().distinct().map(Face::getFaceID).collect(Collectors.toList());
+                List<String> vidPrefix = faceIdList.stream().map(this::wrapKey).collect(Collectors.toList());
+
+                List<String> strings = redisTemplate.opsForValue().multiGet(vidPrefix);
+                Map<String, FaceCacheEntry> cacheResult = new HashMap<>();
+                if(strings != null){
+                    int i = 0;
+                    for (String faceID : faceIdList) {
+                        String entryString = strings.get(i++);
+                        FaceCacheEntry entry = GsonUtil.GsonToBean(entryString, FaceCacheEntry.class);
+                        cacheResult.put(faceID, entry);
+                        log.info("redis查询结果: {}-{}", faceID,entry);
+                    }
+                }
 
                 ExecutorService executorService = Executors.newWorkStealingPool();
                 List<Future<Boolean>> result = new ArrayList();
                 for (Face face : faceList) {
-                    MultiAddFaceToKafkaThread thread = new MultiAddFaceToKafkaThread(face, algRepoMap, bulkRequest);
-                    result.add(executorService.submit(thread));
+                    if (cacheResult.containsKey(face.getFaceID())) {
+                        MultiAddFaceToKafkaThread thread = new MultiAddFaceToKafkaThread(face, algRepoMap, bulkRequest);
+                        result.add(executorService.submit(thread));
+                    }
                 }
 
                 result.forEach(r -> {
@@ -771,6 +787,13 @@ public class SyncFaceToAlgorithmService {
 
         } while (true);
 
+    }
+
+    private String wrapKey(String faceId){
+        if(StringUtils.isEmpty(faceId)){
+            return faceId;
+        }
+        return "V:" + faceId;
     }
 
 
@@ -832,7 +855,7 @@ public class SyncFaceToAlgorithmService {
                 batchSaveSendProfileInfoLog(logParam, bulkRequest);                return false;
             }
 
-            FaceCacheEntry faceCacheEntry = new FaceCacheEntry();
+            /*FaceCacheEntry faceCacheEntry = new FaceCacheEntry();
 
             try {
                 String faceCacheValue = redisTemplate.opsForValue().get("V:" + face.getFaceID());
@@ -845,7 +868,7 @@ public class SyncFaceToAlgorithmService {
                 logParam.put("Reason", "查询出来的 Face 对象 RelativeID 在 Person 中不存在");
                 batchSaveSendProfileInfoLog(logParam, bulkRequest);
                 return false;
-            }
+            }*/
 
             if (StringUtils.isEmpty(face.getIDNumber())) {
                 log.warn("查询出来的 Face 对象 IDNumber 为空，FaceID: {}", face.getFaceID());
