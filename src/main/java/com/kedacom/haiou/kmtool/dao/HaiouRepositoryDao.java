@@ -19,4 +19,10 @@ public interface HaiouRepositoryDao {
     HaiouRepository queryRepoById(@Param("repositoryId") String repoId);
 
     List<HaiouRepository> getBlackRepoByCreatorName(@Param("creatorName") String creatorName);
+
+    List<HaiouRepository> queryRepoByBelongUnit(@Param("belongUnit") String belongUnit);
+
+    Boolean insertRepoMapping(@Param("tabId") String tabId, @Param("algorithmId") String algorithmId, @Param("repoID") String repoID);
+
+    void updateSyncStatus(@Param("tabId") String tabId);
 }

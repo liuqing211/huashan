@@ -36,7 +36,7 @@ public class SubscribeNotificationsController {
     private static KafkaTemplate kafkaKedaTemplate;
 
     @Autowired
-    public SubscribeNotificationsController(@Qualifier("kafkaKedaTemplate") KafkaTemplate kafkaTemplate) {
+    public SubscribeNotificationsController(KafkaTemplate kafkaTemplate) {
         SubscribeNotificationsController.kafkaKedaTemplate = kafkaTemplate;
     }
 

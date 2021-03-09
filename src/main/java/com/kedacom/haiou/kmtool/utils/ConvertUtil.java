@@ -1,10 +1,9 @@
 package com.kedacom.haiou.kmtool.utils;
 
+import com.kedacom.haiou.kmtool.dto.KafkaFaceMessage;
 import com.kedacom.haiou.kmtool.dto.PersonBaseInfo;
-import com.kedacom.haiou.kmtool.dto.viid.Face;
-import com.kedacom.haiou.kmtool.dto.viid.Person;
-import com.kedacom.haiou.kmtool.dto.viid.SubImageInfo;
-import com.kedacom.haiou.kmtool.dto.viid.SubImageInfoList;
+import com.kedacom.haiou.kmtool.dto.SendProfileInfoLog;
+import com.kedacom.haiou.kmtool.dto.viid.*;
 import com.kedacom.haiou.kmtool.entity.ImportantPerson;
 import com.kedacom.haiou.kmtool.entity.PasserbyPic2Algorithm;
 import lombok.extern.slf4j.Slf4j;
@@ -16,6 +15,7 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Created by Administrator on 2020/10/22.
@@ -112,7 +112,7 @@ public class ConvertUtil {
             }
 
             if (StringUtils.isNotEmpty(importantPerson.getXb())) {
-                switch (importantPerson.getXb()){
+                switch (importantPerson.getXb()) {
                     case "男":
                         person.setGenderCode("1");
                         break;
@@ -169,7 +169,7 @@ public class ConvertUtil {
             }
 
             if (StringUtils.isNotEmpty(importantPerson.getXb())) {
-                switch (importantPerson.getXb()){
+                switch (importantPerson.getXb()) {
                     case "男":
                         face.setGenderCode("1");
                         break;
@@ -231,5 +231,62 @@ public class ConvertUtil {
         });
 
         return passerbyPic2Algorithm;
+    }
+
+    /*public static UpdateFaceLog convertFaceToUpdateFaceLog(Face face) {
+        UpdateFaceLog updateFaceLog = new UpdateFaceLog();
+
+        return updateFaceLog;
+    }*/
+
+    public static SendProfileInfoLog convertFaceToSendProfileInfoLog(Map params) {
+        SendProfileInfoLog sendProfileInfoLog = new SendProfileInfoLog();
+
+        Face face = (Face) params.get("FaceObject");
+        sendProfileInfoLog.setFaceID(face.getFaceID());
+        sendProfileInfoLog.setIDNumber(face.getIDNumber());
+        sendProfileInfoLog.setName(face.getName());
+        sendProfileInfoLog.setTabID(face.getTabID());
+        sendProfileInfoLog.setRelativeID(face.getRelativeID());
+        sendProfileInfoLog.setStoragePath(face.getSubImageList().getSubImageInfoObject().get(0).getStoragePath());
+
+        sendProfileInfoLog.setId((String) params.get("Id"));
+        sendProfileInfoLog.setAlgorithmId((String) params.get("AlgorithmId"));
+        sendProfileInfoLog.setStatus((String) params.get("Status"));
+        sendProfileInfoLog.setReason((String) params.get("Reason"));
+        sendProfileInfoLog.setSendTime((String) params.get("SendTime"));
+
+        return sendProfileInfoLog;
+    }
+
+    public static KafkaFaceMessage convertFaceToKafkaMessage(Face face) throws Exception {
+
+
+        KafkaFaceMessage kafkaFaceMessage = new KafkaFaceMessage();
+        kafkaFaceMessage.setImageID(face.getFaceID());
+        kafkaFaceMessage.setImageContent(CommonHelper.ImageToBase64(face.getSubImageList().getSubImageInfoObject().get(0).getStoragePath()));
+        kafkaFaceMessage.setImageFormat("image/jpg");
+        kafkaFaceMessage.setIdNumber(face.getIDNumber());
+        kafkaFaceMessage.setName(face.getName());
+        kafkaFaceMessage.setRepoID(face.getTabID());
+
+        return kafkaFaceMessage;
+    }
+
+    public static List<KafkaFaceMessage> converFaceListTokafkaFaceMessageList(List<Face> sendFaceList) {
+
+        List<KafkaFaceMessage> kafkaFaceMessageList = new ArrayList<>();
+        for (Face face : sendFaceList) {
+            KafkaFaceMessage kafkaFaceMessage = null;
+            try {
+                kafkaFaceMessage = convertFaceToKafkaMessage(face);
+            } catch (Exception e) {
+                log.error("转换 KafkaFaceMessage 对象异常: {}", ExceptionUtils.getStackTrace(e));
+                continue;
+            }
+            kafkaFaceMessageList.add(kafkaFaceMessage);
+        }
+
+        return kafkaFaceMessageList;
     }
 }

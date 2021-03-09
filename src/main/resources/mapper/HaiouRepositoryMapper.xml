@@ -22,7 +22,7 @@
     </resultMap>
 
     <sql id="Base_Repo_Column">
-        id, default_similarity, description, enable, create_time, update_time, creator_name, creator_org, ext1, belong_unit, name, type, black_type
+        id, default_similarity, description, enable, create_time, update_time, creator_name, creator_org, ext1, belong_unit, name, type, black_type, face_num
     </sql>
 
     <select id="getAllBlackListRepo" resultType="com.kedacom.haiou.kmtool.entity.HaiouRepository">
@@ -53,6 +53,18 @@
         FROM haiou.a_haiou_repository where creator_name=#{creatorName} and black_type = '20'
     </select>
 
+    <select id="queryRepoByBelongUnit" resultType="com.kedacom.haiou.kmtool.entity.HaiouRepository">
+        select
+        <include refid="Base_Repo_Column"/>
+        FROM haiou.a_haiou_repository where belong_unit='d675' AND ext6 is NULL and (creator_name != 'haiou' or creator_name is NULL )
+    </select>
 
+    <insert id="insertRepoMapping" parameterType="java.lang.String">
+        INSERT INTO haiou.a_haiou_repository_mapping values(#{tabId}, #{repoID}, #{algorithmId})
+    </insert>
+
+    <update id="updateSyncStatus" parameterType="java.lang.String">
+        UPDATE haiou.a_haiou_repository set ext6='1' where id=#{tabId}
+    </update>
 
 </mapper>

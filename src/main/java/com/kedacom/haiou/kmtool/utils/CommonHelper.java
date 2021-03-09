@@ -32,7 +32,7 @@ public class CommonHelper {
 
             HttpURLConnection conn = (HttpURLConnection) url.openConnection();
             conn.setRequestMethod("GET");
-            conn.setConnectTimeout(5000);
+            conn.setConnectTimeout(10000);
             InputStream is = conn.getInputStream();
 
             int len = -1;

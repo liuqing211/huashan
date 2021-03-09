@@ -5,10 +5,7 @@ import com.kedacom.haiou.kmtool.dto.PersonBaseInfo;
 import com.kedacom.haiou.kmtool.dto.UploadFileRespVO;
 import com.kedacom.haiou.kmtool.dto.viid.*;
 import com.kedacom.haiou.kmtool.service.lib.ViewlibFacade;
-import com.kedacom.haiou.kmtool.utils.ConvertUtil;
-import com.kedacom.haiou.kmtool.utils.IdFactory;
-import com.kedacom.haiou.kmtool.utils.ImageUtil;
-import com.kedacom.haiou.kmtool.utils.PictureUtil;
+import com.kedacom.haiou.kmtool.utils.*;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.http.entity.ContentType;
@@ -116,7 +113,6 @@ public class UploadPersonService {
 
                 if (name.contains("（") || name.contains("）") || name.contains("(") || name.contains(")")) {
                     log.info("{} 该文件命名带括号，需格式化", picture.getAbsolutePath());
-                } else {
                     continue;
                 }
 
@@ -215,9 +211,10 @@ public class UploadPersonService {
 
     public boolean batchUploadPerson(List<PersonBaseInfo> personBaseInfoList, String tabID) {
         List<String> idNumerList = personBaseInfoList.stream().map(PersonBaseInfo::getIdNumber).collect(Collectors.toList());
-        String pageNum = "&PageRecordNum=" + idNumerList.size() * 10;
-        String person_params = "?Person.TabID like .*.*&Person.IDNumber in (" + String.join(",", idNumerList) + ")" + pageNum;
-        String face_params = "?Face.TabID=" + tabID + "&Face.IDNumber in (" + String.join(",", idNumerList) + ")" + pageNum;
+        String person_params = "?Person.TabID like .* &Person.IDNumber in (%s)&Fields=(%s)&PageRecordNum=%s";
+        person_params = String.format(person_params, String.join(",", idNumerList), CommonConstant.PERSON_FIELDS, idNumerList.size() * 10);
+        String face_params = "?Face.TabID=%s&Face.IDNumber in (%s)&Fields=(%s)&PageRecordNum=%s";
+        face_params = String.format(face_params, tabID, String.join(",", idNumerList), CommonConstant.FACE_FIELDS, idNumerList.size() * 10);
 
         List<Person> existPersons = viewlibFacade.getPersons(person_params);
         List<String> existPersonIDNumberList = new ArrayList<>();
@@ -262,7 +259,7 @@ public class UploadPersonService {
 
         }
 
-        if (!CollectionUtils.isEmpty(personList)) {
+         if (!CollectionUtils.isEmpty(personList)) {
             persons.setPersonObject(personList);
             boolean addPersonResult = viewlibFacade.addPersons(persons);
             log.info("{} 录入视图库是否成功 {}", persons.toString(), addPersonResult);

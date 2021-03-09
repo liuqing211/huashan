@@ -29,6 +29,11 @@ public class GsonUtil {
     private GsonUtil() {
     }
 
+
+    public static String toJson(Object object) {
+        return gson.toJson(object);
+    }
+
     /**
      * 转成json
      *

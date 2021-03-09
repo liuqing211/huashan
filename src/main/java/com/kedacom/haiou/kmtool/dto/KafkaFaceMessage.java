@@ -10,8 +10,12 @@ import java.util.Map;
 @Data
 public class KafkaFaceMessage {
 
+
     private String imageID;
     private String imageContent;
     private String imageFormat;
     private String repoID;
+    private String name;
+    private String idNumber;
+
 }
