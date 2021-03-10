@@ -6,6 +6,7 @@ import com.kedacom.haiou.kmtool.dto.SendProfileInfoLog;
 import com.kedacom.haiou.kmtool.dto.viid.*;
 import com.kedacom.haiou.kmtool.entity.ImportantPerson;
 import com.kedacom.haiou.kmtool.entity.PasserbyPic2Algorithm;
+import com.kedacom.haiou.kmtool.entity.ProfileFaceMessage;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
@@ -318,5 +319,31 @@ public class ConvertUtil {
         }
 
         return kafkaFaceMessageList;
+    }
+
+    public static KafkaFaceMessage convertPFMToKafkaFaceMessage(ProfileFaceMessage profileFaceMessage, String algorithmRepoId) {
+        KafkaFaceMessage kafkaFaceMessage = new KafkaFaceMessage();
+        kafkaFaceMessage.setImageID(profileFaceMessage.getFaceID());
+
+        String storagePath = profileFaceMessage.getStoragePath();
+        String filePath = storagePath.replace("http://86.81.131.48:8090/images/", "D:\\store\\images\\").replaceAll("/", "\\\\");
+        File picFile = new File(filePath);
+        if (!picFile.isFile() || !PictureUtil.isPicture(picFile)) {
+            log.info("该文件 {} 不是图片", picFile.getAbsolutePath());
+            return null;
+        }
+        String base64Str = PictureUtil.ImgToBase64(picFile);
+        if (StringUtils.isEmpty(base64Str)) {
+            log.info("图片base64为空");
+            return null;
+        }
+        kafkaFaceMessage.setImageContent(base64Str);
+
+        kafkaFaceMessage.setImageFormat("image/jpg");
+        kafkaFaceMessage.setIdNumber(profileFaceMessage.getIDNumber());
+        kafkaFaceMessage.setName(profileFaceMessage.getName());
+        kafkaFaceMessage.setRepoID(algorithmRepoId);
+
+        return kafkaFaceMessage;
     }
 }

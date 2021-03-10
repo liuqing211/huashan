@@ -10,6 +10,8 @@ import com.kedacom.haiou.kmtool.dto.viid.FaceListRoot;
 import com.kedacom.haiou.kmtool.dto.viid.Person;
 import com.kedacom.haiou.kmtool.entity.FaceCacheEntry;
 import com.kedacom.haiou.kmtool.entity.HaiouRepository;
+import com.kedacom.haiou.kmtool.entity.ProfileFaceMessage;
+import com.kedacom.haiou.kmtool.entity.ProfileFaceMessageRoot;
 import com.kedacom.haiou.kmtool.service.lib.ViewlibFacade;
 import com.kedacom.haiou.kmtool.utils.*;
 import lombok.extern.slf4j.Slf4j;
@@ -825,9 +827,9 @@ public class SyncFaceToAlgorithmService {
         String scollID = "1";
         do {
             log.info("开始轮询查询视图库 {}", DateUtil.format(new Date(), "yyyy-MM-dd HH:mm:ss"));
-            String url = viewlibAddr + VIID_FACE + "?TabID=%s and ScollID=%s and MustUnLimit=1 and PageRecordNum = %s and Fields=(%s) and Sort=EntryTime";
+            String url = viewlibAddr + VIID_FACE + "?TabID=%s and ScollID=%s and MustUnLimit=1 and PageRecordNum = %s and Fields=(%s)";
             url = String.format(url, "334c0a72450a4bc089d9aea173046fe2", scollID, 2000, "FaceID, IDNumber, Name, RelativeID, TabID, SubImageList.StoragePath");
-            log.info("遍历视图库查询人员库 334c0a72450a4bc089d9aea173046fe2 中 staticface 数据请求", url);
+            log.info("遍历视图库查询人员库 334c0a72450a4bc089d9aea173046fe2 中 staticface 数据请求: {}", url);
 
             ResponseEntity<String> pageResponse = null;
             try {
@@ -844,36 +846,38 @@ public class SyncFaceToAlgorithmService {
                 FaceListRoot faceListRoot = GsonUtil.GsonToBean(pageResponse.getBody(), FaceListRoot.class);
                 List<Face> faceList = faceListRoot.getFaceListObject().getFaceObject();
 
+                ProfileFaceMessageRoot profileFaceMessageRoot = new ProfileFaceMessageRoot();
+                List<ProfileFaceMessage> profileFaceMessageList = new ArrayList<>();
                 for (Face face : faceList) {
                     if (null != face) {
-                        Map<String, String> params = new HashMap<>();
-                        params.put("FaceID", face.getFaceID());
-                        params.put("RelativeID", face.getRelativeID());
-                        params.put("IDNumber", face.getIDNumber());
-                        params.put("Name", face.getName());
-                        params.put("TabID", face.getTabID());
-                        params.put("StoragePath", face.getSubImageList().getSubImageInfoObject().get(0).getStoragePath());
-                        params.put("EntryTime", face.getLocationMarkTime());
-                        params.put("Id", face.getFaceID() +
-                                DateUtil.format(new Date(), "yyyyMMddHHmmssSSS") + String.valueOf(new Date().getTime()));
-
-                        ExecutorService executorService = Executors.newWorkStealingPool(120);
-                        List<Future<Boolean>> result = new ArrayList();
-                        AddProfileToKfk thread = new AddProfileToKfk(params);
-                        result.add(executorService.submit(thread));
-
-                        result.forEach(r -> {
-                            try {
-                                if (r.get()) {
-                                }
-                            } catch (Exception e) {
-                                log.error("发送人脸图到Kafka失败");
-                            }
-                        });
-
-
+                        ProfileFaceMessage profileFaceMessage = new ProfileFaceMessage();
+                        profileFaceMessage.setFaceID(face.getFaceID());
+                        profileFaceMessage.setRelativeID(face.getRelativeID());
+                        profileFaceMessage.setIDNumber(face.getIDNumber());
+                        profileFaceMessage.setName(face.getName());
+                        profileFaceMessage.setTabID(face.getTabID());
+                        profileFaceMessage.setStoragePath(face.getSubImageList().getSubImageInfoObject().get(0).getStoragePath());
+                        profileFaceMessage.setEntryTime(face.getLocationMarkTime());
+                        profileFaceMessage.setId(face.getFaceID() + face.getLocationMarkTime() + UUID.randomUUID());
+                        profileFaceMessageList.add(profileFaceMessage);
                     }
                 }
+                profileFaceMessageRoot.setProfileFaceMessageList(profileFaceMessageList);
+
+                ExecutorService executorService = Executors.newWorkStealingPool(12);
+                List<Future<Boolean>> result = new ArrayList();
+                AddProfileToKfk thread = new AddProfileToKfk(profileFaceMessageRoot);
+                result.add(executorService.submit(thread));
+
+                result.forEach(r -> {
+                    try {
+                        if (r.get()) {
+                        }
+                    } catch (Exception e) {
+                        log.error("发送人脸图到Kafka失败");
+                    }
+                });
+
                 log.info("本次轮询查询视图库结束: {}", DateUtil.format(new Date(), "yyyy-MM-dd HH:mm:ss"));
 
                 String returnedScrollId = faceListRoot.getFaceListObject().getScollID();
@@ -974,27 +978,27 @@ public class SyncFaceToAlgorithmService {
     }
 
     public class AddProfileToKfk implements Callable<Boolean> {
-        private Map<String, String> params;
+        private ProfileFaceMessageRoot profileFaceMessageRoot;
 
-        public AddProfileToKfk(Map<String, String> params) {
-            this.params = params;
+        public AddProfileToKfk(ProfileFaceMessageRoot profileFaceMessageRoot) {
+            this.profileFaceMessageRoot = profileFaceMessageRoot;
         }
 
         @Override
         public Boolean call() {
-            if (CollectionUtil.isEmpty(params)) {
+            if (null == profileFaceMessageRoot || CollectionUtil.isEmpty(profileFaceMessageRoot.getProfileFaceMessageList())) {
                 return false;
             }
 
-            kafkaTemplate.send(receiverProfileTopic, params.get("Id").getBytes(), GsonUtil.toJson(params).getBytes()).addCallback(new ListenableFutureCallback<SendResult<byte[], byte[]>>() {
+            kafkaTemplate.send(receiverProfileTopic, String.valueOf(profileFaceMessageRoot.hashCode()).getBytes(), GsonUtil.toJson(profileFaceMessageRoot).getBytes()).addCallback(new ListenableFutureCallback<SendResult<byte[], byte[]>>() {
                 @Override
                 public void onFailure(Throwable e) {
-                    log.error("人员信息 {} 发送kfk失败: {}", params.toString(), ExceptionUtils.getStackTrace(e));
+                    log.error("人员信息发送kfk失败: {}", ExceptionUtils.getStackTrace(e));
                 }
 
                 @Override
                 public void onSuccess(SendResult<byte[], byte[]> sendResult) {
-                    log.info("人员信息 {} 发送kafka {} 成功", params.get("FaceID"), receiverProfileTopic);
+                    log.info("人员信息发送kafka {} 成功", receiverProfileTopic);
                 }
             });
             return true;
