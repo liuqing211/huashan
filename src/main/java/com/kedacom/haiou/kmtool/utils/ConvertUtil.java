@@ -10,6 +10,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 
+import java.io.File;
 import java.sql.Time;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -264,7 +265,22 @@ public class ConvertUtil {
 
         KafkaFaceMessage kafkaFaceMessage = new KafkaFaceMessage();
         kafkaFaceMessage.setImageID(face.getFaceID());
-        kafkaFaceMessage.setImageContent(CommonHelper.ImageToBase64(face.getSubImageList().getSubImageInfoObject().get(0).getStoragePath()));
+        // kafkaFaceMessage.setImageContent(CommonHelper.ImageToBase64(face.getSubImageList().getSubImageInfoObject().get(0).getStoragePath()));
+
+        String storagePath = face.getSubImageList().getSubImageInfoObject().get(0).getStoragePath();
+        String filePath = storagePath.replace("http://86.81.131.48:8090/images/", "D:\\store\\images\\").replaceAll("/", "\\\\");
+        File picFile = new File(filePath);
+        if (!picFile.isFile() || !PictureUtil.isPicture(picFile)) {
+            log.info("该文件 {} 不是图片", picFile.getAbsolutePath());
+            return null;
+        }
+        String base64Str = PictureUtil.ImgToBase64(picFile);
+        if (StringUtils.isEmpty(base64Str)) {
+            log.info("图片base64为空");
+            return null;
+        }
+        kafkaFaceMessage.setImageContent(base64Str);
+
         kafkaFaceMessage.setImageFormat("image/jpg");
         kafkaFaceMessage.setIdNumber(face.getIDNumber());
         kafkaFaceMessage.setName(face.getName());
@@ -281,7 +297,7 @@ public class ConvertUtil {
         kafkaFaceMessage.setImageContent(CommonHelper.ImageToBase64(face.getSubImageList().getSubImageInfoObject().get(0).getStoragePath()));
         kafkaFaceMessage.setImageFormat("image/jpg");
         kafkaFaceMessage.setIdNumber(face.getIDNumber());
-        kafkaFaceMessage.setName(face.getName());
+        kafkaFaceMessage.setName(new String(face.getName().getBytes(), "UTF-8"));
         kafkaFaceMessage.setRepoID(algRepoId);
 
         return kafkaFaceMessage;

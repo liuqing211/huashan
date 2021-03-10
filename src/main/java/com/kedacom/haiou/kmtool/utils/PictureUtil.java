@@ -57,10 +57,11 @@ public class PictureUtil {
 
     /**
      * 该方法只适用于 bmp gif jpg png
+     *
      * @param picture
      * @return
      */
-    public static boolean isPicture(File picture){
+    public static boolean isPicture(File picture) {
         try {
             BufferedImage image = ImageIO.read(picture);
 
@@ -93,6 +94,22 @@ public class PictureUtil {
             e.printStackTrace();
         }
         return new String(Base64.encodeBase64(data.toByteArray()));
+    }
+
+    public static String ImgToBase64(File picFile) {
+
+        BufferedImage bufferedImage = null;
+        try {
+            //图片转base64
+            bufferedImage = ImageIO.read(picFile);
+            ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+            ImageIO.write(bufferedImage, "jpg", outputStream);
+            byte[] bytes = outputStream.toByteArray();
+            return Base64.encodeBase64String(bytes);
+        } catch (Exception e) {
+            log.info("图片转换Base64异常: {}", ExceptionUtils.getStackTrace(e));
+            return null;
+        }
     }
 
 
