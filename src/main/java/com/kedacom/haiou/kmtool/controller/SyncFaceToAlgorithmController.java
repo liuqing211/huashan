@@ -58,4 +58,13 @@ public class SyncFaceToAlgorithmController {
         syncFaceToAlgorithmService.MultiPushResidentToAlgorithm("334c0a72450a4bc089d9aea173046fe2", "4,5,6");
 
     }
+
+    @GetMapping("/pushProfileToKfk")
+    @ResponseBody
+    public void pushProfileToKfk(){
+
+        syncFaceToAlgorithmService.pushPronfileToKfk();
+
+    }
+
 }

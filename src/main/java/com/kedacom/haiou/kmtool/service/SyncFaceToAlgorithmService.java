@@ -85,6 +85,9 @@ public class SyncFaceToAlgorithmService {
     @Value("${topic.prefix.addFaceToAlgorithm}")
     private String addFaceTopic;
 
+    @Value("${topic.receiverProfile}")
+    private String receiverProfileTopic;
+
     @Autowired
     private CommonService commonService;
 
@@ -268,7 +271,7 @@ public class SyncFaceToAlgorithmService {
 
                 @Override
                 public void onSuccess(SendResult<byte[], byte[]> sendResult) {
-                    log.info("人员信息 {} 发送kafka {} 成功", finalKafkaFaceMessage.getImageID(),topic);
+                    log.info("人员信息 {} 发送kafka {} 成功", finalKafkaFaceMessage.getImageID(), topic);
                 }
             });
 
@@ -703,7 +706,7 @@ public class SyncFaceToAlgorithmService {
         final BulkRequest bulkRequest = new BulkRequest();
         bulkRequest.setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE);
 
-        Map<String, String> algRepoMap= new HashMap<>();
+        Map<String, String> algRepoMap = new HashMap<>();
         for (String algorithmId : algorithmIds.split(",")) {
             String algoRepo = haiouRepositoryDao.queryRepoMappingByAlgIDAndRepoId(algorithmId, tabId);
             if (StringUtils.isNotEmpty(algoRepo)) {
@@ -743,7 +746,7 @@ public class SyncFaceToAlgorithmService {
 
                 List<String> strings = redisTemplate.opsForValue().multiGet(vidPrefix);
                 Map<String, FaceCacheEntry> cacheResult = new HashMap<>();
-                if(strings != null){
+                if (strings != null) {
                     int i = 0;
                     for (String faceID : faceIdList) {
                         String entryString = strings.get(i++);
@@ -806,11 +809,82 @@ public class SyncFaceToAlgorithmService {
 
     }
 
-    private String wrapKey(String faceId){
-        if(StringUtils.isEmpty(faceId)){
+    private String wrapKey(String faceId) {
+        if (StringUtils.isEmpty(faceId)) {
             return faceId;
         }
         return "V:" + faceId;
+    }
+
+    /**
+     * 轮询查询视图库，将档案写入到kfk中
+     */
+    public void pushPronfileToKfk() {
+
+        int loadedCount = 0;
+        String scollID = "1";
+        do {
+            String url = viewlibAddr + VIID_FACE + "?TabID=%s and ScollID=%s and MustUnLimit=1 and PageRecordNum = %s and Fields=(%s) and Sort=EntryTime";
+            url = String.format(url, "334c0a72450a4bc089d9aea173046fe2", scollID, 2000, "FaceID, IDNumber, Name, RelativeID, TabID, SubImageList.StoragePath");
+            log.info("遍历视图库查询人员库 334c0a72450a4bc089d9aea173046fe2 中 staticface 数据请求", url);
+
+            ResponseEntity<String> pageResponse = null;
+            try {
+                pageResponse = RestUtil.getRestTemplate().getForEntity(url, String.class);
+            } catch (RestClientException e) {
+                log.error("查询视图库请求 {} 请求失败：{}", url, ExceptionUtils.getMessage(e));
+                break;
+            }
+
+            if (HttpStatus.NOT_FOUND.equals(pageResponse.getStatusCode())) {
+                log.info("查询视图库人员库 334c0a72450a4bc089d9aea173046fe2 中 staticface 数据结束");
+                break;
+            } else if (HttpStatus.OK.equals(pageResponse.getStatusCode())) {
+                FaceListRoot faceListRoot = GsonUtil.GsonToBean(pageResponse.getBody(), FaceListRoot.class);
+                List<Face> faceList = faceListRoot.getFaceListObject().getFaceObject();
+
+                for (Face face : faceList) {
+                    if (null != face) {
+                        Map<String, String> params = new HashMap<>();
+                        params.put("FaceID", face.getFaceID());
+                        params.put("RelativeID", face.getRelativeID());
+                        params.put("IDNumber", face.getIDNumber());
+                        params.put("Name", face.getName());
+                        params.put("TabID", face.getTabID());
+                        params.put("StoragePath", face.getSubImageList().getSubImageInfoObject().get(0).getStoragePath());
+                        params.put("EntryTime", face.getLocationMarkTime());
+                        params.put("Id", face.getFaceID() +
+                                DateUtil.format(new Date(), "yyyyMMddHHmmssSSS") + String.valueOf(new Date().getTime()));
+
+
+                        kafkaTemplate.send(receiverProfileTopic, params.get("Id").getBytes(), GsonUtil.toJson(params).getBytes()).addCallback(new ListenableFutureCallback<SendResult<byte[], byte[]>>() {
+                            @Override
+                            public void onFailure(Throwable e) {
+                                log.error("人员信息 {} 发送kfk失败: {}", params.toString(), ExceptionUtils.getStackTrace(e));
+                            }
+
+                            @Override
+                            public void onSuccess(SendResult<byte[], byte[]> sendResult) {
+                                log.info("人员信息 {} 发送kafka {} 成功", face.getFaceID(), receiverProfileTopic);
+                            }
+                        });
+                    }
+                }
+
+
+                String returnedScrollId = faceListRoot.getFaceListObject().getScollID();
+                if (!"1".equals(scollID) && !scollID.equals(returnedScrollId)) {
+                    log.info("游标从 {} 变为 {} ，又从头加载", scollID, returnedScrollId);
+                    loadedCount = 0;
+                }
+
+                loadedCount += faceListRoot.getFaceListObject().getFaceObject().size();
+                scollID = returnedScrollId;
+            }
+
+
+        } while (true);
+
     }
 
 
