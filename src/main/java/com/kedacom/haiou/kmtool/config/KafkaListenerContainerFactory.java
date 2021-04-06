@@ -25,8 +25,8 @@ public class KafkaListenerContainerFactory {
         props.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
         props.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, ByteArrayDeserializer.class);
         props.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, ByteArrayDeserializer.class);
-        props.put(ConsumerConfig.GROUP_ID_CONFIG, "haiou_profile_consumer_1");
-        props.put(ConsumerConfig.MAX_POLL_RECORDS_CONFIG, 12);
+        props.put(ConsumerConfig.GROUP_ID_CONFIG, "haiou_profile_consumer_2");
+        props.put(ConsumerConfig.MAX_POLL_RECORDS_CONFIG, 1);
         props.put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, "true");
         return props;
     }

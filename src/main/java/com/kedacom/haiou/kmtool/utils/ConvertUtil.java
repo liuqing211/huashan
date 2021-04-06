@@ -10,6 +10,7 @@ import com.kedacom.haiou.kmtool.entity.ProfileFaceMessage;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
+import sun.misc.BASE64Encoder;
 
 import java.io.File;
 import java.sql.Time;
@@ -326,18 +327,11 @@ public class ConvertUtil {
         kafkaFaceMessage.setImageID(profileFaceMessage.getFaceID());
 
         String storagePath = profileFaceMessage.getStoragePath();
-        String filePath = storagePath.replace("http://86.81.131.48:8090/images/", "D:\\store\\images\\").replaceAll("/", "\\\\");
-        File picFile = new File(filePath);
-        if (!picFile.isFile() || !PictureUtil.isPicture(picFile)) {
-            log.info("该文件 {} 不是图片", picFile.getAbsolutePath());
-            return null;
+        if (StringUtils.isEmpty(profileFaceMessage.getBase64())) {
+            kafkaFaceMessage.setImageContent(CommonHelper.ImageToBase64(storagePath));
+        } else {
+            kafkaFaceMessage.setImageContent(profileFaceMessage.getBase64());
         }
-        String base64Str = PictureUtil.ImgToBase64(picFile);
-        if (StringUtils.isEmpty(base64Str)) {
-            log.info("图片base64为空");
-            return null;
-        }
-        kafkaFaceMessage.setImageContent(base64Str);
 
         kafkaFaceMessage.setImageFormat("image/jpg");
         kafkaFaceMessage.setIdNumber(profileFaceMessage.getIDNumber());

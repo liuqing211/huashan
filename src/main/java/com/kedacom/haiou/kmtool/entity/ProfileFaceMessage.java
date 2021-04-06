@@ -13,4 +13,8 @@ public class ProfileFaceMessage {
     private String IDNumber;
     private String Name;
     private String EntryTime;
+    private String Base64;
+    private String AlgorithmId;
+    private String AlgorithmRepositoryId;
+
 }

@@ -13,6 +13,7 @@ public class CommonConstant {
 
     public static final String QUERY_FACE = "/VIID/Faces";
     public static final String QUERY_PERSON = "/VIID/Persons";
+    public static final String QUERY_DISPOSITIONNOTIFICATION = "/VIID/DispositionNotifications";
 
     public static final String FACE_FIELDS = "FaceID, RelativeID, Name, IDNumber, TabID, EntryTime, SubImageList.StoragePath";
     public static final String PERSON_FIELDS = "PersonID, Name, IDNumber, TabID, EntryTime, SubImageList.StoragePath";
