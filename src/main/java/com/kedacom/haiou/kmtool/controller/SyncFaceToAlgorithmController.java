@@ -22,33 +22,10 @@ public class SyncFaceToAlgorithmController {
     @Autowired
     private SyncFaceToAlgorithmService syncFaceToAlgorithmService;
 
-    @Autowired
-    private HaiouRepositoryDao haiouRepositoryDao;
-
-    @Autowired
-    private ViewlibFacade viewlibFacade;
-
-    @GetMapping("/pushProfileToAlgorithm")
-    @ResponseBody
-    public void pushProfileToAlgorithm(){
-        List<HaiouRepository> haiouRepositoryList = haiouRepositoryDao.queryRepoByBelongUnit("d675");
-        log.info("查询到市级布控库有{} 个", haiouRepositoryList.size());
-
-        for (HaiouRepository haiouRepository : haiouRepositoryList) {
-            if (haiouRepository.getFaceNum() < 0) {
-                log.info("人员库 {} 中无 Face 数据，跳过", haiouRepository.getName());
-                continue;
-            }
-
-            syncFaceToAlgorithmService.syncValidFaceToAlgorithm(haiouRepository.getId(), "1,2,3");
-        }
-
-    }
-
     @GetMapping("/pushProfileToKfk")
     @ResponseBody
     public void pushProfileToKfk(){
-        syncFaceToAlgorithmService.pushPronfileToKfk();
+        syncFaceToAlgorithmService.pushProfileToKfk();
     }
 
 }
