@@ -86,7 +86,7 @@ public class SyncFaceToAlgorithmService {
     @Autowired
     HaiouRepositoryDao haiouRepositoryDao;
 
-    /*@Bean
+    @Bean
     RestHighLevelClient esClient() {
         List<HttpHost> hosts = Stream.of(esHost.split(",")).map(p -> {
             String[] hostPort = p.split(":");
@@ -103,7 +103,7 @@ public class SyncFaceToAlgorithmService {
         RestHighLevelClient client = new RestHighLevelClient(restClient);
 
         return client;
-    }*/
+    }
 
 
     /**

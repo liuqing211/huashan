@@ -49,9 +49,9 @@ public class ProfileConsumer {
     @Autowired
     AddFaceTask addFaceTask;
 
-    @KafkaListener(topics = "profileReceiverTopic",
+    /*@KafkaListener(topics = "profileReceiverTopic",
             containerFactory = "thirdPartyResultConsumer.containerFactory",
-            groupId = "haiou_profile_consumer_2")
+            groupId = "haiou_profile_consumer_2")*/
     public void consumePasserbyClusterResult(List<ConsumerRecord> records) {
 
         try {

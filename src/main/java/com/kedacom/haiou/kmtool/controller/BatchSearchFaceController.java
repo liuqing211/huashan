@@ -1,5 +1,6 @@
 package com.kedacom.haiou.kmtool.controller;
 
+import com.kedacom.haiou.kmtool.config.ResponseMessage;
 import com.kedacom.haiou.kmtool.service.BatchSearchFaceService;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
@@ -36,7 +37,7 @@ public class BatchSearchFaceController {
     // 欺骗 IE 浏览器，返回值是 html 类型， 否则老版本 IE 会产生下载文件请求
     @RequestMapping(value = "/uploadMultipleFile", method = RequestMethod.POST, produces = {"text/html"})
     @ResponseBody
-    public String batchSearchByIDNumbers(@RequestParam("file") MultipartFile[] files){
+    public ResponseMessage batchSearchByIDNumbers(@RequestParam("file") MultipartFile[] files){
 
         try {
             for (int i = 0; i < files.length; i++) {
@@ -47,7 +48,7 @@ public class BatchSearchFaceController {
 
                     if (0 == idNumbers.length) {
                         log.info("上传文本中无身份证");
-                        return "success";
+                        return ResponseMessage.failed(null);
                     }
 
                     log.info("收到根据IDNumber批量查询Face的请求，身份证数量: {}", idNumbers.length);
@@ -58,28 +59,8 @@ public class BatchSearchFaceController {
             e.printStackTrace();
         }
 
-        return "success";
+        return ResponseMessage.success(null);
     }
 
-    @PostMapping("/searchByIDNumbers")
-    @ResponseBody
-    public String searchByIDNumbers(@RequestBody Map<String, Object> param) {
-        final List<String> idNumberList = new ArrayList<>();
-        log.info("收到根据IDNumber批量查询Face的请求，身份证数量: {}", idNumberList.size());
 
-
-        if (CollectionUtils.isEmpty(idNumberList)) {
-            log.info("文本中无身份证信息");
-            return "This File is Empty";
-        }
-
-        boolean result = batchSearchFaceService.searchByIDNumbers(idNumberList);
-
-        if (result) {
-            return "success";
-        } else {
-            return "failed";
-        }
-
-    }
 }
